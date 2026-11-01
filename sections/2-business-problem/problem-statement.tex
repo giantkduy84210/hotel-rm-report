@@ -1,10 +1,20 @@
 \subsection{Problem Statement}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item Decision makers: revenue manager + operations director
-    \item 3 decisions: (1) price by segment/day, (2) group vs transient allocation, (3) overbooking level
-    \item Why the problem is semistructured: the computer handles the quantitative part, the human judges the rest
-    \item Dataset: 119,390 bookings, 32 columns, 2015--2017
-  \end{itemize}
-\end{guide}
+
+\paragraph{Organisational context.}
+The organisation is a hospitality group operating two properties in Portugal: H1, a resort hotel in the Algarve, and H2, a city hotel in Lisbon~\cite{antonio2019}. The two properties serve different customer mixes and demand patterns---H1 is leisure-oriented with pronounced summer seasonality, while H2 has a steadier mix of business and city-break travellers. Revenue management decisions for each property are made by the revenue manager in consultation with the operations director.
+
+\paragraph{Decision makers.}
+The primary decision maker is the \textbf{revenue manager}, who sets rates, manages inventory allocation, and decides overbooking levels. The \textbf{operations director} is involved for capacity and staffing implications. Both roles require interactive access to data and models, which the proposed DSS provides.
+
+\paragraph{The three recurring decisions.}
+\begin{enumerate}
+  \item \textbf{Pricing (tactical)}: setting nightly rates by room type and season. Business travellers pay \$112 per night on average versus \$103 for leisure travellers~\cite{goeldner2009} (p.~156); the revenue manager must decide how much to charge each segment on each date, knowing that pricing too high in low season leaves rooms empty while pricing too low in high season forfeits revenue.
+  \item \textbf{Group vs.\ transient allocation (tactical)}: when a tour operator or corporate client offers to purchase a block of rooms at a discounted rate (e.g., 40 rooms at \$80 per night for a fixed period), the revenue manager must decide how many rooms to reserve for this group versus holding them for individual (transient) guests who may book at a higher rate (e.g., \$120). This is an allocation problem under capacity constraints.
+  \item \textbf{Overbooking level (operational)}: because a predictable share of bookings is cancelled or results in no-shows, selling exactly to capacity guarantees unsold rooms. The manager must decide how many rooms to sell beyond capacity to maximise expected revenue, subject to the risk and cost of walking a guest to another hotel.
+\end{enumerate}
+
+\paragraph{Why the problem is semistructured.}
+Following Simon's framework as presented in the course~\cite{turban2011}, these decisions are \emph{semistructured}: the quantitative portion---forecasting demand, computing optimal allocations, evaluating overbooking expected values---can be handled by computer models. The qualitative portion---competitor actions, special events, brand positioning, relationship with group clients---requires human judgment. A DSS is the appropriate paradigm precisely because it combines the computational power of models with the domain knowledge of the decision maker, aiming to support rather than replace the human.
+
+\paragraph{Data.}
+The decisions are grounded in the real booking dataset of Antonio et al.~\cite{antonio2019}: 119{,}390 bookings with 32 attributes covering arrival dates, length of stay, room type, market segment, customer type, deposit type, average daily rate (ADR), and cancellation status, for the period July~2015 to August~2017.

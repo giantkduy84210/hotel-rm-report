@@ -1,9 +1,18 @@
 \subsection{Objectives}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item Objective: build a DSS for hotel revenue management
-    \item Three supported decisions: pricing, allocation, overbooking
-    \item Outputs: RevPAR, ADR, occupancy
-  \end{itemize}
-\end{guide}
+
+The objective of this project is to build a \emph{decision support system} (DSS) for hotel revenue management, utilising a data warehouse and data analytics as required by the course specification. The system supports a revenue manager in making three recurring tactical and operational decisions:
+
+\begin{enumerate}
+  \item \textbf{Pricing}: setting nightly room rates by room type and season, balancing the willingness-to-pay of different customer segments.
+  \item \textbf{Allocation}: deciding how many rooms to reserve for group business versus transient (individual) guests when a group contract is offered.
+  \item \textbf{Overbooking}: determining how many rooms to sell beyond physical capacity, given the historical distribution of cancellations and no-shows.
+\end{enumerate}
+
+For each decision, the system produces measurable outputs aligned with the three key performance indicators of the lodging industry~\cite{goeldner2009}:
+\begin{itemize}
+  \item \textbf{ADR} (Average Daily Rate): the average revenue generated per occupied room.
+  \item \textbf{Occupancy rate}: the percentage of rooms occupied during a specific period.
+  \item \textbf{RevPAR} (Revenue Per Available Room): a composite metric combining ADR and occupancy to evaluate overall performance.
+\end{itemize}
+
+The application is interactive: the user can adjust model parameters (price levels, group allocation, overbooking thresholds) and immediately observe the resulting changes in projected RevPAR, ADR, and occupancy through \emph{what-if analysis}, \emph{sensitivity analysis}, and \emph{goal seeking}---the three analysis modes that Turban et al.~\cite{turban2011} identify as core DSS capabilities.

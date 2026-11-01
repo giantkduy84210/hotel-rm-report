@@ -1,9 +1,11 @@
 \subsection{Expected Goals}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item Primary goal: maximize RevPAR
-    \item Secondary goal: reduce vacant rooms in the low season
-    \item Constraint: number of walked guests $\leq$ threshold
-  \end{itemize}
-\end{guide}
+
+The expected goals of the decision support system are:
+
+\begin{enumerate}
+  \item \textbf{Primary goal --- maximise RevPAR}: the system should recommend pricing, allocation, and overbooking decisions that maximise Revenue Per Available Room, the composite industry-standard metric that balances ADR and occupancy~\cite{goeldner2009}.
+  \item \textbf{Secondary goal --- reduce vacant rooms in the low season}: by adjusting prices dynamically and targeting price-sensitive segments, the system should help improve occupancy during periods of low demand without permanently eroding rate positioning.
+  \item \textbf{Constraint --- limit walked guests}: the expected number of guests denied a room due to overbooking must not exceed a management-specified threshold per night, protecting guest experience and brand reputation. This constraint reflects the textbook's warning that ``should the quality of facilities and services drop, demand will fall off---a serious blow to the tourism industry in the area'' (p.~388).
+\end{enumerate}
+
+All three goals are \emph{measurable} from the data warehouse: RevPAR and occupancy are computed from the fact tables, and the walked-guest constraint is an output of the overbooking model. This aligns with the project requirement that the business problem be defined with a context, decision makers, and expected goals that are verifiable from available data.
