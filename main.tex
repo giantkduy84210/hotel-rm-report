@@ -1,0 +1,43 @@
+\RequirePackage{iftex}
+\ifpdftex\else
+  \errmessage{This template uses vntex (T5 font encoding) and must be compiled with pdfLaTeX, not XeLaTeX or LuaLaTeX. On Overleaf: Menu > Compiler > pdfLaTeX}
+  \expandafter\stop
+\fi
+
+\documentclass[a4paper, 12pt]{article}
+\input{metadata}
+\input{styles/preamble}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagenumbering{alph}
+\input{frontmatter/titlepage}
+\pagenumbering{arabic}
+\pagebreak
+\tableofcontents
+\pagebreak
+
+\addcontentsline{toc}{section}{\listfigurename}
+\listoffigures
+\addcontentsline{toc}{section}{\listtablename}
+\listoftables
+\pagebreak
+
+\renewcommand{\arraystretch}{1.5}
+\setlength{\LTpre}{0pt}
+\setlength{\LTpost}{0pt}
+
+\include{frontmatter/acknowledgement}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\include{sections/1-introduction/main}
+\include{sections/2-business-problem/main}
+\include{sections/3-proposed-solution/main}
+\include{sections/4-application/main}
+\include{sections/5-evaluation/main}
+\include{sections/6-conclusion/main}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\printbibliography[heading=bibintoc, title={References}]
+\end{document}
