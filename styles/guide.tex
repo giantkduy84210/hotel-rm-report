@@ -1,4 +1,4 @@
-% "Hướng dẫn viết" boxes: what a subsection should contain and which questions it should answer.
+% "Writing guide" boxes: what a subsection should contain and which questions it should answer.
 % Delete a box once its subsection is written. \showguidesfalse in metadata.tex hides all of them at once.
 \definecolor{guideaccent}{RGB}{180,83,9}
 \definecolor{guidebackground}{RGB}{255,247,230}
@@ -15,7 +15,7 @@
       \colorbox{guidebackground}{%
         \begin{minipage}{\dimexpr\linewidth-2pt-2\fboxsep\relax}
           \small
-          {\color{guideaccent}\textbf{Hướng dẫn viết}}\par
+          {\color{guideaccent}\textbf{Writing guide}}\par
           #1
         \end{minipage}}%
       \par
@@ -24,5 +24,5 @@
   \fi
 }{}
 
-% Bold label inside a guide box, e.g. \guidepart{Câu hỏi cần trả lời}
+% Bold label inside a guide box, e.g. \guidepart{Questions to answer}
 \newcommand{\guidepart}[1]{\par\smallskip\textbf{#1}\par}
