@@ -1,6 +1,7 @@
 \subsection{Model Catalog}
 
-The model base contains five models, M1--M5, covering the three decisions of Section~2: pricing is supported by M1 (demand forecasting) and M5 (pricing goal seeking), group-versus-transient allocation by M2 (Littlewood rule) and M3 (linear programming), and overbooking by M4. Following the modelling discipline of the course, every model declares its four variable roles---decision variables, uncontrollable variables, intermediate variables, and result variables---together with its classification on three axes: static versus dynamic, certainty versus risk versus uncertainty, and the management level of the decision it supports~\cite{turban2011}. Table~\ref{tab:modelcatalog} summarises the catalog; the paragraphs that follow declare each model.
+The model base contains five models, M1--M5, covering the three decisions of Section~2: pricing is supported by M1 (demand forecasting) and M5 (pricing goal seeking), group-versus-transient allocation by M2 (Littlewood rule) and M3 (linear programming), and overbooking by M4. Following the modelling discipline of the course, every model declares its four variable roles---decision variables, uncontrollable variables, intermediate variables, and result variables---together with its classification on three axes: static versus dynamic, certainty versus risk versus uncertainty, and the management level of the decision it supports~\cite{turban2011}.
+In Anthony's taxonomy all five support tactical-level (management control) decisions: they set policies and limits over a booking horizon, while the operational layer---the reservation system and the front desk---executes those limits per request. Table~\ref{tab:modelcatalog} summarises the catalog; the paragraphs that follow declare each model.
 The structure follows the reference architecture of commercial revenue management systems, which execute explicit price optimisation, overbooking, and allocation in sequence, fed by demand forecasting~\cite{pimentel2019}: M1 supplies the forecasts, while M5, M4, and M2--M3 correspond to the pricing, overbooking, and allocation modules.
 The suite also covers six of the seven functions that constitute ``all the functionality of a real-world revenue management system'' in the simulation of Pimentel et al.~\cite{pimentel2019}; the exception---estimating true demand from censored demand---is handled as a documented limitation (Section~3.2).
 
@@ -12,10 +13,10 @@ The suite also covers six of the seven functions that constitute ``all the funct
 \toprule
 \textbf{Model} & \textbf{Purpose} & \textbf{Class} & \textbf{Certainty} & \textbf{Level} \\
 \midrule
-M1 Forecasting & Nightly room demand forecast for the coming weeks & Dynamic & Risk & Operational \\
+M1 Forecasting & Nightly room demand forecast for the coming weeks & Dynamic & Risk & Tactical \\
 M2 Littlewood & Accept or reject a discounted group request; protection level for full-rate guests & Static & Risk & Tactical \\
 M3 Allocation & Optimal multi-night, multi-room-type allocation of capacity between groups and transient guests & Static & Certainty & Tactical \\
-M4 Overbooking & Booking limit that balances empty rooms against walk costs & Static & Risk & Operational \\
+M4 Overbooking & Booking limit that balances empty rooms against walk costs & Static & Risk & Tactical \\
 M5 Pricing & Rate needed to reach a target RevPAR, with sensitivity & Static & Uncertainty & Tactical \\
 \bottomrule
 \end{tabularx}
