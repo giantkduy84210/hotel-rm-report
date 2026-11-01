@@ -67,6 +67,9 @@ numbersep=5pt, firstnumber=1, numberfirstline=true}
 
 % biblatex with IEEE style
 \usepackage[backend=biber, style=ieee, sorting=none]{biblatex}
+
+% Give bibliography lines a little extra stretch (long reference entries otherwise overfull)
+\appto{\bibsetup}{\emergencystretch=1.5em}
 \addbibresource{refs.bib}
 
 % Header/footer: logo + university name in the header, course and page number in the footer.
