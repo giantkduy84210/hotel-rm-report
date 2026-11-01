@@ -1,44 +1,54 @@
 # Hotel RM Report
 
-Repo chứa source LaTeX của report môn học. Mỗi khi branch `main` thay đổi, GitHub Actions compile lại report và cập nhật bản PDF mới nhất tại:
+LaTeX source of the course report. Every push to `main` makes GitHub Actions rebuild the report and update the latest PDF at:
 
-**PDF mới nhất:** https://github.com/giantkduy84210/hotel-rm-report/releases/download/latest/report.pdf
+**Latest PDF:** https://github.com/giantkduy84210/hotel-rm-report/releases/download/latest/report.pdf
 
-## Cấu trúc repo
+## Repository layout
 
 ```text
 .
-├── main.tex                  # file gốc, ghép các phần của report theo thứ tự
-├── metadata.tex              # tên môn học, mã môn, tên đề tài, giảng viên, sinh viên, năm
-├── refs.bib                  # tài liệu tham khảo (biblatex + biber, style IEEE)
+├── main.tex                  # root file, assembles the report sections in order
+├── metadata.tex              # course name, course code, report title, advisor, students, year
+├── refs.bib                  # references (biblatex + biber, IEEE style)
 ├── styles/
-│   ├── preamble.tex          # khai báo package, layout trang, header/footer, định dạng heading
-│   ├── guide.tex             # khung "Hướng dẫn viết" trong mỗi subsection
-│   └── diagrams.tex         # TikZ styles cho star schema, DSS architecture
-├── frontmatter/              # trang bìa, lời cảm ơn
+│   ├── preamble.tex          # packages, page layout, header/footer, heading format
+│   ├── guide.tex             # "Writing guide" boxes in each subsection
+│   └── diagrams.tex          # TikZ styles for the star schema and DSS architecture
+├── frontmatter/              # title page, acknowledgements
 ├── sections/
-│   ├── 1-introduction/       # Phần 1: giới thiệu
-│   ├── 2-business-problem/   # Phần 2: business problem definition
-│   ├── 3-proposed-solution/  # Phần 3: proposed solution (MMS deep)
-│   ├── 4-application/        # Phần 4: application development
-│   ├── 5-evaluation/         # Phần 5: evaluation
-│   └── 6-conclusion/         # Phần 6: conclusion
-├── figures/                  # hình minh họa, chia folder theo section
-├── slides/                    # midterm + final presentation
-├── docs/                      # research, decisions, assumptions, demo script
-├── scripts/build.py          # script compile
-├── .latexmkrc                # cấu hình build dùng chung cho local, VS Code và CI
-├── CONTRIBUTING.md           # quy ước commit
+│   ├── 1-introduction/       # Section 1: introduction
+│   ├── 2-business-problem/   # Section 2: business problem definition
+│   ├── 3-proposed-solution/  # Section 3: proposed solution (MMS covered in depth)
+│   ├── 4-application/        # Section 4: application development
+│   ├── 5-evaluation/         # Section 5: evaluation
+│   └── 6-conclusion/         # Section 6: conclusion
+├── figures/                  # figures, one folder per section
+├── slides/                   # midterm + final presentations
+├── docs/                     # research, decisions, assumptions, demo script
+├── scripts/build.py          # build script
+├── .latexmkrc                # build config shared by local, VS Code and CI
+├── CONTRIBUTING.md           # commit conventions
 └── .github/workflows/build.yml
 ```
 
-Convention (giống mobile-report):
-- Mỗi section cấp 1 là một thư mục `sections/<order>-<name>/`. File `main.tex` của section chứa lệnh `\section{}` và `\input` các subsection, mỗi subsection nằm trong một file riêng.
-- Hình minh họa đặt trong `figures/<section name>/`. Preamble đã khai báo `\graphicspath{{figures/}}`.
-- Mọi đường dẫn trong `\input` và `\include` đều tính từ thư mục gốc của repo.
-- Tiêu đề viết hoa chữ cái đầu như một câu bình thường. Thuật ngữ quen dùng bằng tiếng Anh (DSS, Star Schema, Revenue Management, MBMS, ...) giữ nguyên.
+Conventions (same as mobile-report):
+- Each level-1 section is a folder `sections/<order>-<name>/`. The section's `main.tex` holds the `\section{}` command and `\input`s the subsections, one file per subsection.
+- Figures live in `figures/<section name>/`. The preamble declares `\graphicspath{{figures/}}`.
+- All `\input` and `\include` paths are relative to the repo root.
+- Headings are sentence case. Familiar English terms (DSS, Star Schema, Revenue Management, MBMS, ...) stay as they are.
 
-## Cách build
+## Writing-guide boxes
+
+Each subsection starts with a `guide` box listing what the subsection must contain and which questions it must answer. Delete the box in the same commit that finishes the subsection; set `\showguidesfalse` in `metadata.tex` to preview the report without any of them.
+
+## Creating a checkpoint for a phase
+
+1. Update `\reportphase` in `metadata.tex` in its own pull request, e.g. `chore(metadata): set phase 1`.
+2. Publish a release with a tag such as `phase-1` on the commit to checkpoint.
+3. CI builds that exact commit and attaches `report-<tag>.pdf` to the release (never expires). The `latest` prerelease always tracks `main`.
+
+## Building
 
 ```bash
 python3 scripts/build.py        # build once
@@ -46,4 +56,4 @@ python3 scripts/build.py watch  # watch mode
 python3 scripts/build.py clean  # clean
 ```
 
-Yêu cầu: TeX Live với vntex (T5), biber, latexmk.
+Requires a TeX Live installation with vntex (T5), biber and latexmk.

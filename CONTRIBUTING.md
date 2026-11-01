@@ -1,8 +1,8 @@
-# Quy ước commit
+# Commit conventions
 
-Repo sử dụng [Conventional Commits](https://www.conventionalcommits.org/), với tập `type` và `scope` được điều chỉnh cho việc viết report thay vì phát triển phần mềm. Commit message viết bằng tiếng Anh.
+This repo follows [Conventional Commits](https://www.conventionalcommits.org/) with `type` and `scope` values adapted to report writing instead of software development. Commit messages are written in English.
 
-## Định dạng
+## Format
 
 ```text
 <type>(<scope>): <subject>
@@ -10,68 +10,68 @@ Repo sử dụng [Conventional Commits](https://www.conventionalcommits.org/), v
 <body>
 ```
 
-- `type`: bắt buộc, chọn một giá trị trong bảng bên dưới.
-- `scope`: không bắt buộc, cho biết phần nào của report bị thay đổi.
-- `subject`: mô tả ngắn thay đổi, viết ở thể mệnh lệnh (`add`, `fix`, `update`, không viết `added` hay `adds`), chữ thường ở đầu, không có dấu chấm cuối câu, tổng độ dài dòng đầu không quá 72 ký tự.
-- `body`: không bắt buộc, cách dòng đầu một dòng trống, dùng để giải thích lý do thay đổi khi subject chưa đủ rõ. Mỗi dòng không quá 72 ký tự.
+- `type`: required, pick one value from the table below.
+- `scope`: optional, tells which part of the report changed.
+- `subject`: a short description of the change, imperative mood (`add`, `fix`, `update`, not `added` or `adds`), lowercase first letter, no trailing period, whole first line at most 72 characters.
+- `body`: optional, separated from the first line by a blank line, explains the motivation when the subject alone is not clear. Wrap lines at 72 characters.
 
 ## Type
 
-| Type | Dùng khi |
+| Type | Use when |
 |---|---|
-| `content` | Viết mới hoặc chỉnh sửa nội dung report: section, subsection, đoạn văn, bảng, lời cảm ơn |
-| `fix` | Sửa lỗi trong nội dung hoặc lỗi compile: typo, số liệu sai, `\ref`/`\cite` hỏng, lỗi LaTeX |
-| `figure` | Thêm hoặc sửa figure trong `figures/`, bao gồm cả file source trong `src/` |
-| `ref` | Thêm, sửa hoặc xóa tài liệu tham khảo trong `refs.bib` |
-| `style` | Thay đổi hình thức trình bày mà không đổi nội dung: preamble, layout trang, font, header/footer, định dạng heading, trang bìa |
-| `build` | Thay đổi cách build: `.latexmkrc`, `scripts/build.py` |
-| `ci` | Thay đổi workflow GitHub Actions |
-| `docs` | Thay đổi tài liệu của repo: `README.md`, `CONTRIBUTING.md` (không phải nội dung report) |
-| `chore` | Các việc còn lại: `metadata.tex`, `.gitignore`, config editor, dọn file |
-| `revert` | Hoàn tác một commit trước đó, subject là tiêu đề của commit bị hoàn tác |
+| `content` | Writing or editing report content: sections, subsections, paragraphs, tables, acknowledgements |
+| `fix` | Fixing errors in content or compile errors: typos, wrong figures, broken `\ref`/`\cite`, LaTeX errors |
+| `figure` | Adding or changing figures in `figures/` |
+| `ref` | Adding, editing or removing references in `refs.bib` |
+| `style` | Presentation-only changes that do not alter content: preamble, page layout, fonts, header/footer, heading format, title page |
+| `build` | Changing how the report builds: `.latexmkrc`, `scripts/build.py` |
+| `ci` | Changing the GitHub Actions workflows |
+| `docs` | Changing repo documentation: `README.md`, `CONTRIBUTING.md` (not the report content) |
+| `chore` | Everything else: `metadata.tex`, `.gitignore`, editor config, cleaning up files |
+| `revert` | Reverting a previous commit; the subject is the title of the reverted commit |
 
-Nếu một commit rơi vào nhiều type, nên tách thành nhiều commit. Trường hợp không tách được, chọn type ứng với thay đổi chính.
+If a commit falls under several types, split it into several commits. When that is not possible, pick the type of the main change.
 
 ## Scope
 
-Scope dùng tên section (bỏ phần số thứ tự trong tên folder) hoặc tên một khu vực cố định của repo:
+A scope is a section name (without the order prefix of the folder) or a fixed area of the repo:
 
-| Scope | Phạm vi |
+| Scope | Covers |
 |---|---|
-| `project-overview`, `product-scope`, `ui-ux-design`, `technical-architecture` | Section tương ứng trong `sections/<order>-<name>/` và folder `figures/<name>/` |
-| `frontmatter` | Trang bìa, lời cảm ơn |
+| `introduction`, `business-problem`, `proposed-solution`, `application`, `evaluation`, `conclusion` | The matching section in `sections/<order>-<name>/` and its `figures/<name>/` folder |
+| `frontmatter` | Title page, acknowledgements |
 | `metadata` | `metadata.tex` |
 
-Scope có thể bỏ qua khi thay đổi không gắn với một phần cụ thể, ví dụ `ref`, `build`, `ci`, hoặc khi thay đổi trải trên nhiều section.
+A scope can be omitted when the change is not tied to a specific part, e.g. `ref`, `build`, `ci`, or when it spans several sections.
 
-## Ví dụ
+## Examples
 
 ```text
-content(project-overview): add personas from the user survey
-content(technical-architecture): compare Flutter and React Native
-fix(product-scope): correct acceptance criteria of US-VID-03
+content(introduction): add the tourism phenomenon background
+content(proposed-solution): compare the Inmon and Kimball approaches
+fix(business-problem): correct the ADR definition
 fix: resolve broken references after renaming section 3 labels
-figure(ui-ux-design): add cross-module user flow diagram
-ref: add Jetpack Compose documentation
+figure(proposed-solution): add the star schema diagram
+ref: add the Kimball Data Toolkit book
 style(frontmatter): align student names on the title page
-chore(metadata): set phase 2 and course code
+chore(metadata): set phase 2 and the course code
 build: fail the build on undefined citations
 ci: attach the PDF to published releases
 docs: explain the checkpoint workflow in README
 ```
 
-Ví dụ commit có body:
+Example commit with a body:
 
 ```text
-content(technical-architecture): cache news and music for offline use
+content(proposed-solution): declare the four variable types of each model
 
-The phase 1 feedback asked for offline support, so section 4.3 now
-describes the local cache and how it syncs with the backend.
+Chapter 7 distinguishes decision, uncontrollable, intermediate and
+result variables, so the model catalog now lists them for M1--M3.
 ```
 
-## Pull request và checkpoint
+## Pull requests and checkpoints
 
-- `main` không nhận push trực tiếp. Mọi thay đổi được viết trên một branch riêng (ví dụ `content/user-personas`), mở pull request vào `main` và chỉ merge được khi check `build` pass.
-- Khi merge pull request bằng **Squash and merge** (cách merge duy nhất được bật), title của pull request trở thành commit message trên `main`. Vì vậy title của pull request cũng theo đúng định dạng trên.
-- Viết xong một subsection thì xóa khung `guide` (Hướng dẫn viết) của subsection đó trong cùng commit, xem [README](README.md#khung-hướng-dẫn-viết).
-- Trước khi tạo checkpoint cho một giai đoạn, cập nhật `\reportphase` trong `metadata.tex` bằng một pull request riêng, ví dụ `chore(metadata): set phase 1`. Sau đó mới tạo release theo hướng dẫn trong [README](README.md#tạo-checkpoint-cho-từng-giai-đoạn).
+- `main` does not accept direct pushes. Every change is written on its own branch (e.g. `content/tourism-background`), a pull request is opened into `main` and can only be merged when the `build` check passes.
+- When merging a pull request with **Squash and merge** (the only enabled merge method), the pull request title becomes the commit message on `main`. The pull request title therefore follows the same format.
+- Once a subsection is written, delete its `guide` (writing guide) box in the same commit, see [README](README.md#writing-guide-boxes).
+- Before creating a checkpoint for a phase, update `\reportphase` in `metadata.tex` in its own pull request, e.g. `chore(metadata): set phase 1`. Then create the release as described in [README](README.md#creating-a-checkpoint-for-a-phase).

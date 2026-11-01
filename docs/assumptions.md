@@ -10,6 +10,6 @@
 ## Limitations
 1. Dataset is static (2015-2017), no real-time feeds
 2. Two hotels are in different segments (resort vs city) — modeled separately
-3. M1 (Holt-Winters) projects pattern but does not explain causality (Goeldner tr.422)
+3. M1 (Holt-Winters) projects pattern but does not explain causality (Goeldner p. 422)
 4. M3 uses simplified expected-value model, not full no-show distribution
 5. No channel profitability modeling (commission rates by OTA vs Direct)
