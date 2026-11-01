@@ -69,14 +69,18 @@ numbersep=5pt, firstnumber=1, numberfirstline=true}
 \usepackage[backend=biber, style=ieee, sorting=none]{biblatex}
 \addbibresource{refs.bib}
 
-% Header/footer
+% Header/footer: logo + university name in the header, course and page number in the footer.
+% Built without tabular so that \arraystretch (changed in main.tex) cannot move the header.
+% The logo sits 2.5mm below the text baseline, and the declared 4mm depth keeps a 1.5mm gap above the header rule.
 \pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\small\textit{\coursename{} (\coursecode)}}
-\fancyhead[R]{\small\textit{\reporttitle}}
-\fancyfoot[C]{\thepage\ / \pageref{LastPage}}
-\renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\footrulewidth}{0pt}
+\fancyhead{}
+\fancyhead[L]{\raisebox{-2.5mm}[5.5mm][4mm]{\includegraphics[width=8mm, height=8mm]{hcmut.png}}\hspace{2mm}%
+\small\textbf{Ho Chi Minh City University of Technology}}
+\fancyfoot{} % clear all footer fields
+\fancyfoot[L]{\scriptsize \textbf{\coursename{} (\coursecode)}}
+\fancyfoot[R]{\scriptsize Page {\thepage}/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}
 
 
 
