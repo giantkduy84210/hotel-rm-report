@@ -2,10 +2,13 @@
 \begin{guide}
   \guidepart{Content to include}
   \begin{itemize}
-    \item M1: statsmodels ExponentialSmoothing, train 2015--2016, test 2017
-    \item M2: PuLP LP, variables + constraints + objective function
-    \item M3: cost model, break-even formula $p \geq C/(ADR + C)$
-    \item Registry: JSON + run(model\_id, params)
+    \item M1 Forecasting: statsmodels ExponentialSmoothing (weekly seasonality) + seasonal-naive baselines (repeat last week, same week last year, year-over-year scaled); rolling backtest with monthly cut-offs, metrics MAE/RMSE/WAPE/MAPE
+    \item M2 Littlewood: protection level $y^{*} = \mu + \sigma\,\Phi^{-1}(1 - p_L/p_H)$, expected sales $\mathrm{E}[\min(D,x)]$ via normal loss; group accept/reject with breakeven group rate (scipy.stats.norm)
+    \item M3 Allocation: PuLP LP/MILP --- transient rooms $y_{d,t}$ per (night, type), binary group accepts $z_g$, capacity and demand constraints; shadow prices by fixing $z$ and re-solving the LP
+    \item M4 Overbooking: exact binomial scan cross-checked against the critical-ratio formula; Monte Carlo verification (fixed seed, 95\% CI); show-up probability $p$ measured at cut-off $h$ days before arrival from bookings \emph{still on the books}, not from final booking status
+    \item M5 Pricing: constant-elasticity demand model, goal seeking with brentq (root finding), tornado sensitivity
+    \item Registry: \texttt{model\_catalog} + \texttt{run\_model(model\_id, params)} + \texttt{fact\_scenario\_run}
+    \item Known-answer tests (pytest): Littlewood $y^{*}$ on a textbook instance, overbooking toy case, LP vs.\ MILP gap, goal-seek root
     \item Key code snippets
   \end{itemize}
 \end{guide}

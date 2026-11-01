@@ -2,10 +2,15 @@
 \begin{guide}
   \guidepart{Content to include}
   \begin{itemize}
-    \item Total rooms not available $\to$ estimated from max(rooms\_sold)
-    \item adr = 0 $\to$ complimentary rooms, need filtering
-    \item Revenue = room revenue only (no F\&B)
+    \item Total rooms not available $\to$ estimated from max(rooms\_sold): occupancy may be overstated, and true overbooking is never observed (censored data)
+    \item adr = 0 $\to$ complimentary rooms, filtered
+    \item Revenue = room revenue only (no F\&B); walk cost is an assumed multiple of ADR
+    \item Price elasticity not estimable (no independent price variation in data) $\to$ assumed, shown via tornado
+    \item Demand is censored: rejected/unrecorded bookings are unobserved; bookings across nights treated independently; no recapture of turned-away demand
+    \item Leakage: \texttt{reservation\_status} known only after the event $\to$ cut-off-based features for overbooking
+    \item Season definition (peak Jun--Sep) fits the resort, not the city hotel $\to$ city results used for comparison
     \item 2 hotels in different segments $\to$ run models separately
     \item Canceled bookings: distinguish demand vs revenue
+    \item Generalisability: two Portuguese hotels, Jul 2015--Aug 2017
   \end{itemize}
 \end{guide}

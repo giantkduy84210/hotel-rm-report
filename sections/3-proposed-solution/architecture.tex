@@ -1,9 +1,44 @@
 \subsection{DSS Architecture}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item 4 DSS subsystems (Ch6 slides): data management, model management, UI, knowledge-based
-    \item Overall architecture diagram (TikZ or figure)
-    \item Stack: DuckDB + statsmodels + PuLP + Streamlit
-  \end{itemize}
-\end{guide}
+
+\paragraph{Overview.}
+The proposed system follows the classical four-component DSS architecture of Turban et al.~\cite{turban2011}: a \emph{data management subsystem} (the data warehouse and its ETL pipeline), a \emph{model management subsystem} (the model base and its management software---our assigned topic, detailed in Section~3.4), a \emph{user interface subsystem} (an interactive web application), and a \emph{knowledge-based subsystem} (domain knowledge recorded as structured metadata). Figure~\ref{fig:architecture} shows how the components fit together.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.85, every node/.style={transform shape},
+  sysbox/.append style={minimum width=2.95cm, minimum height=1.15cm}]
+  \node[sysbox] (src)  {Source data\\ \scriptsize (Antonio et al.)};
+  \node[sysbox] (etl)  [right=0.7cm of src] {ETL pipeline\\ \scriptsize clean $\cdot$ conform $\cdot$ load};
+  \node[sysbox] (dw)   [right=0.7cm of etl] {Data warehouse\\ \scriptsize DuckDB star schema};
+  \node[sysbox] (ui)   [right=0.7cm of dw] {User interface\\ \scriptsize Streamlit};
+  \node[sysbox] (user) [right=0.7cm of ui] {Revenue\\ manager};
+  \node[sysbox] (mb)   [below=1.05cm of dw] {Model base M1--M5\\ \scriptsize \texttt{model\_catalog}};
+  \node[sysbox] (run)  [below=1.05cm of ui] {\texttt{fact\_scenario\_run}\\ \scriptsize run history};
+
+  \draw[arrow] (src) -- (etl);
+  \draw[arrow] (etl) -- (dw);
+  \draw[arrow] (dw) -- node[label, above]{KPIs} (ui);
+  \draw[arrow] (ui) -- node[label, above]{what-if} (user);
+  \draw[arrow] (dw) -- node[label, right]{queries} (mb);
+  \draw[arrow] (mb) -- node[label, above]{results} (ui);
+  \draw[arrow] (mb) -- node[label, above]{log} (run);
+  \draw[dasharrow] (run) -- node[label, right]{read back} (ui);
+\end{tikzpicture}
+\caption{Overall architecture of the proposed DSS. Solid arrows show the data and control flow; the dashed arrow shows the scenario-comparison screen reading back past runs.}
+\label{fig:architecture}
+\end{figure}
+
+\paragraph{Data management subsystem.}
+The foundation is a Kimball-style data warehouse built with DuckDB from the booking dataset of Antonio et al.~\cite{antonio2019}. A separate warehouse is necessary because the operational source behaves like an online transaction processing (OLTP) system: it records individual booking transactions as they occur and is not organised to answer analytical questions such as ``how did the resort's August occupancy and ADR evolve by market segment over two years?''. The data warehouse, by contrast, \emph{remembers}: it integrates and reorganises historical transactions into the dimensional star schema of Section~3.2, whose facts can be rolled up, drilled down, sliced, and diced along the analytical dimensions. The extract--transform--load (ETL) pipeline cleans the source records, conforms them into the dimensions, and asserts referential integrity and reconciliation totals before the warehouse is accepted~\cite{kimball2013,hoffer2016}.
+
+\paragraph{Model management subsystem.}
+The model base contains the five quantitative models of Section~3.3: demand forecasting (M1), the Littlewood group decision rule (M2), linear-programming allocation (M3), overbooking (M4), and pricing goal seeking (M5). Turban et al. characterise the model management software as a module with capabilities analogous to those of a DBMS, but applied to models rather than to data~\cite{turban2011}. We take this analogy literally and implement the model base itself as \emph{database tables}: a \texttt{model\_catalog} that stores each model's metadata (purpose, variable roles, assumptions, limitations) and a \texttt{fact\_scenario\_run} table that records every execution. This design is the subject of Section~3.4.
+
+\paragraph{User interface subsystem.}
+The revenue manager interacts with the system through a Streamlit web application with four screens: a KPI dashboard (ADR, occupancy, and RevPAR by hotel, period, and segment), a forecasting screen, an optimisation and what-if screen that exposes the parameters of all five models as interactive controls, and a scenario-comparison screen that reads previous runs back from the warehouse. The interface supports the three analysis modes that Turban et al. identify as core DSS capabilities~\cite{turban2011}: \emph{what-if analysis} (change a parameter, observe the projected KPIs), \emph{sensitivity analysis} (tornado charts showing which parameter the decision is most exposed to), and \emph{goal seeking} (invert the pricing model to find the rate that achieves a target RevPAR).
+
+\paragraph{Knowledge-based subsystem.}
+Rather than a full expert system, the knowledge component is deliberately lightweight: the domain knowledge that would otherwise be scattered across code comments is recorded as structured, queryable metadata. This includes the season definition (peak, shoulder, low), the classification of market segments into group versus transient business, the documented assumptions of every model (walk cost, price elasticity), and the capacity-estimation rule described in Section~3.2. Encoding these as data rather than code means every assumption is visible to the decision maker in the interface, and every result can be traced back to the assumptions that produced it.
+
+\paragraph{A compound DSS covering all decision phases.}
+In the taxonomy of Turban et al.~\cite{turban2011}, the system is a compound DSS: its dashboard is data-driven (OLAP over the star schema), while its optimisation and what-if screens are model-driven. Mapping the architecture onto Simon's four phases of decision making confirms the coverage of the problem defined in Section~2: \emph{intelligence} is served by the dashboard queries over the warehouse; \emph{design} is served by the model base, which generates candidate pricing, allocation, and overbooking alternatives; \emph{choice} is served by the optimisation and goal-seeking runs that rank those alternatives on projected RevPAR; and \emph{implementation review} is served by the scenario run log, which preserves every parameter set and outcome so that past decisions can be audited and learned from.

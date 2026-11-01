@@ -4,7 +4,12 @@
   \begin{itemize}
     \item Extract: read the CSV (pandas)
     \item Transform: merge the 4 arrival columns $\to$ date, explode into booking-nights, encode surrogate keys
+    \item Cleaning log: every rule with the number of rows it removed (negative/zero ADR with guests, zero adults, impossible values); warm-up window handling
+    \item Capacity estimation: max(rooms\_sold) per hotel after warm-up, asserted and stored in \texttt{dim\_hotel} with its basis
+    \item Reconciliation: booked vs.\ realised revenue split (cancellations), totals reconciled against the dataset paper
+    \item Quality gates: foreign-key orphan checks, fact-vs-source row counts --- pipeline fails (non-zero exit) if any check fails
     \item Load: into the DuckDB star schema
+    \item Demonstrate the loaded warehouse with 8 OLAP queries (roll-up, drill-down, slice, dice, pivot) with result tables and short commentary
     \item Pipeline diagram + DuckDB screenshot
   \end{itemize}
 \end{guide}

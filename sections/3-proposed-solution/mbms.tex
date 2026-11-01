@@ -1,11 +1,62 @@
 \subsection{Model Base Management Subsystem}
-\begin{guide}
-  \guidepart{Content to include — GROUP TOPIC, COVER IN DEPTH}
-  \begin{itemize}
-    \item MBMS definition (Ch7 slide 61): ``capabilities similar to those of a DBMS''
-    \item ``No standard MBMS'' (Ch7 slide 63): why our team designs its own
-    \item 6 MBMS capabilities (Ch7 slide 62): Control, Flexibility, Feedback, Interface, Redundancy reduction, Increased consistency
-    \item Model registry: per-model metadata + versioning
-    \item MBMS diagram within the overall architecture
-  \end{itemize}
-\end{guide}
+
+This subsystem is the topic assigned to our group, and this section presents it in depth: what the model management software is expected to do, why there is no standard product to simply install, and how our design meets the requirements using the same relational machinery that manages the data.
+
+\paragraph{What an MBMS is.}
+Turban et al. describe the model management subsystem as a module that theoretically has capabilities similar to those of a database management system (DBMS), but directed at models: it should manage, manipulate, and run the models embedded in the DSS, in the way a DBMS manages, manipulates, and queries data~\cite{turban2011}. The analogy is instructive because a DBMS is not merely a place where tables sit---it is the combination of stored data, a schema catalog describing that data, a query processor that executes requests against it, and a log of what happened. A model base that is only a folder of Python modules has none of that: no place where the models' structure is described, no uniform way to invoke them, and no record of which runs produced which numbers.
+
+\paragraph{Why there is no standard MBMS.}
+Unlike the DBMS market, no standard, off-the-shelf MBMS exists today. The course material states this plainly, and the reason is structural: models are heterogeneous in their mathematics (M1 is a time series, M2 a closed-form probability rule, M3 an optimisation program), so a universally applicable model manager is far harder to standardise than a universally applicable data manager~\cite{turban2011}. Every DSS team therefore designs the model management layer for its own context. The design below is ours.
+
+\paragraph{Design: manage models the way a DBMS manages data.}
+We take the DBMS analogy literally and implement the model base as relational tables inside the same DuckDB warehouse that holds the business facts, so that the MBMS has a catalog, an execution interface, and a log---the three organs a DBMS has:
+
+\begin{itemize}
+  \item \textbf{\texttt{model\_catalog} --- the schema catalog.} One row per model, holding for each of M1--M5: its identifier, purpose, mathematical type, classification (static/dynamic; certainty/risk/uncertainty), the four variable roles (decision, uncontrollable, intermediate, result), its parameters, its \emph{assumptions}, its \emph{limitations}, the path of the module implementing it, and its reference list. Where a DBMS catalog stores the schema of every table, our catalog stores the ``schema'' of every model---the declarations of Table~\ref{tab:modelcatalog} and Section~3.3 live in this table, not in prose only.
+  \item \textbf{A run registry --- the query processor.} A single entry point, \texttt{run\_model(model\_id, params)}, validates the parameters against the catalog entry, imports the module recorded there, executes the model, and returns structured results. Every caller---the Streamlit interface, the experiment scripts, the test suite---goes through the same entry point, exactly as every database client goes through the same SQL engine.
+  \item \textbf{\texttt{fact\_scenario\_run} --- the transaction log.} One row per model execution: model identifier, scenario name, the full parameter set (JSON), the result (JSON), and the headline KPI. The table is the memory of every what-if the manager has tried, and the substrate for the scenario-comparison screen.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.85, every node/.style={transform shape},
+  sysbox/.append style={minimum width=2.75cm, minimum height=1.15cm}]
+  \node[sysbox] (ui)   {User interface\\ \scriptsize what-if controls};
+  \node[sysbox] (reg)  [right=0.7cm of ui] {Run registry\\ \scriptsize \texttt{run\_model()}};
+  \node[sysbox] (cat)  [right=0.7cm of reg] {\texttt{model\_catalog}\\ \scriptsize metadata + validation};
+  \node[sysbox] (mod)  [right=0.7cm of cat] {Model modules\\ \scriptsize M1--M5 (Python)};
+  \node[sysbox] (log)  [below=1.0cm of mod] {\texttt{fact\_scenario\_run}\\ \scriptsize params + results};
+
+  \draw[arrow] (ui) -- node[label, above]{run} (reg);
+  \draw[arrow] (reg) -- node[label, above]{validate} (cat);
+  \draw[arrow] (reg) -- node[label, above]{execute} (mod);
+  \draw[arrow] (mod) -- node[label, right]{log} (log);
+  \draw[dasharrow] (log.west) -| node[label, below]{compare scenarios} (ui.south);
+\end{tikzpicture}
+\caption{The model base management subsystem: a single entry point validates, executes, and logs every run.}
+\label{fig:mbms}
+\end{figure}
+
+\paragraph{The six required capabilities, met one by one.}
+The course summarises the expected capabilities of an MBMS as six~\cite{turban2011}; Table~\ref{tab:mbmscaps} maps each to the concrete mechanism in our design.
+
+\begin{table}[H]
+\centering
+\caption{The six MBMS capabilities and their implementation in this project.}
+\label{tab:mbmscaps}
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Capability} & \textbf{How our design provides it} \\
+\midrule
+Control & All models are invoked exclusively through \texttt{run\_model()}; parameters are validated against the catalog before execution; the model suite is covered by automated tests with known-answer cases (for example, the Littlewood protection level and the overbooking critical ratio on textbook instances). \\
+Flexibility & Models compose: M1's forecasts parameterise M2 and M3; any parameter can be overridden at run time to create a what-if scenario; a new model joins the suite by adding a module and a catalog row, without touching the interface or the registry. \\
+Feedback & Every run returns its result variables together with the assumptions recorded in its catalog entry; the interface displays the change against a named baseline scenario, so the manager sees not only the number but the direction and size of the move. \\
+Interface & The same registry serves the interactive UI, the batch experiment scripts, and the tests---models contain no interface code, and the interface contains no model logic, so neither duplicates the other. \\
+Redundancy reduction & Each model exists exactly once, as one canonical module referenced by its catalog row; analytical SQL over the warehouse is likewise defined once in views that the UI and the models share. \\
+Increased consistency & The same model version with the same parameters produces the same results wherever it is run; every result row in \texttt{fact\_scenario\_run} carries its parameter set, so any number in the report can be traced to the run that produced it and reproduced by re-running it. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Why implementing the model base as data matters.}
+Three practical consequences follow from treating models as managed data rather than as code. First, \emph{assumptions become visible and centralised}: the walk-cost multiple, the price elasticity, and the capacity estimate are declared once, in the catalog and the dimensions, instead of hiding in source files. Second, \emph{decisions become reproducible}: because each run logs its parameters and results, the scenario-comparison screen can answer the retrospective question that Simon's implementation phase poses---``which alternative did we choose, and why?'' Third, \emph{the reporting stays honest}: a model whose backtest shows it losing to a simple baseline (as can genuinely happen to a smoothing method) is reported as such, because the run log preserves the comparison rather than the narrative. These are the same reasons organisations built databases in the first place, transposed from data to models---which is precisely the promise of the MBMS concept~\cite{turban2011}.

@@ -1,11 +1,66 @@
 \subsection{Star Schema Design}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item Kimball 4-step design: business process $\to$ grain $\to$ dimensions $\to$ facts
-    \item Grain: booking-night (1 row = 1 night $\times$ 1 booking)
-    \item Goeldner p.~419: ``Hotel and other accommodations people want data on visitor-nights''
-    \item fact\_room\_night + fact\_daily\_occupancy + 7 dims
-    \item Star schema diagram (figure)
-  \end{itemize}
-\end{guide}
+
+\paragraph{Kimball's four-step dimensional design process.}
+The warehouse follows the four-step design process of Kimball and Ross~\cite{kimball2013}: select the business process, declare the grain, choose the dimensions, and identify the facts. We apply the steps in order because each one constrains the next.
+
+\paragraph{Step 1 --- select the business process.}
+The business process is the nightly sale of room inventory: which rooms were sold, to which segment, at what rate, and whether the stay actually occurred. This is the process that generates ADR, occupancy, and RevPAR, and it is the process that the three decisions of Section~2 (pricing, allocation, overbooking) act upon.
+
+\paragraph{Step 2 --- declare the grain.}
+The primary fact table has a grain of \textbf{booking-night}: one row per booked room for each night of the stay. This grain is justified on both practical and domain grounds. Practically, a booking-grain table cannot answer per-night questions (``how many rooms were occupied on 12~August 2016?'') without exploding multi-night stays at query time, and every revenue management decision is a per-night decision: rates are set per night, occupancy is measured per night, and overbooking protects a specific night. On the domain side, Goeldner and Ritchie make exactly this point about the unit of accommodation demand: ``Hotel and other accommodations people want data on visitor-nights'' (p.~419)~\cite{goeldner2009}. The dataset's own structure supports the grain: each booking carries an arrival date, a number of nights, and an average daily rate that applies to every night of the stay.
+
+\paragraph{Step 3 --- choose the dimensions.}
+Seven conformed dimensions describe a booking-night: \textbf{date} (the stay night, with calendar attributes including day of week, month, season, and holiday flags), \textbf{hotel}, \textbf{room type}, \textbf{market segment} (with a group-versus-transient flag), \textbf{customer type}, \textbf{deposit type}, and \textbf{distribution channel}. A degenerate \texttt{booking\_id} key identifies the originating booking without a separate dimension. Conformance matters for the second fact table below: the dimensions are shared, with the same meaning and the same keys, so the two facts can be analysed together along the common dimensions~\cite{kimball2013}.
+
+\paragraph{Step 4 --- identify the facts.}
+The design contains two fact tables at two grains, each appropriate to its analytical questions:
+
+\begin{itemize}
+  \item \textbf{fact\_room\_night} (grain: booking-night) records, for each night of each booking: the room rate of the booking, whether the booking was cancelled before arrival, and the realised revenue for that night (the rate if the stay occurred, zero if it did not). This table carries the full segment and booking attributes, so it answers questions such as ``what ADR did the Online TA segment pay on August weekends at the resort?'' and it feeds the Littlewood and allocation models, which reason about segments.
+  \item \textbf{fact\_daily\_occupancy} (grain: hotel $\times$ stay date $\times$ room type) is a daily snapshot of rooms sold, realised revenue, and available capacity. The snapshot is \emph{dense}: rows are emitted with zero rooms sold for every night and room type with no sales, because occupancy is a ratio of rooms sold to rooms \emph{available}---the nights where nothing happened are precisely the ones the low-season problem of Section~2 is about, and dropping them would silently overstate occupancy.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.92, every node/.style={transform shape},
+  dimbox/.append style={minimum width=2.5cm, minimum height=0.8cm},
+  factbox/.append style={minimum width=3.0cm, minimum height=1.05cm}]
+  \node[factbox] (f1) at (0,0) {\textbf{fact\_room\_night}\\ \scriptsize grain: booking-night};
+  \node[factbox] (f2) at (8.6,0) {\textbf{fact\_daily\_occupancy}\\ \scriptsize grain: hotel $\times$ date $\times$ type};
+  \node[dimbox] (date)  at (4.3, 1.95) {\textbf{dim\_date}};
+  \node[dimbox] (hotel) at (4.3, 0)    {\textbf{dim\_hotel}};
+  \node[dimbox] (rtype) at (4.3, -1.95) {\textbf{dim\_room\_type}};
+  \node[dimbox] (chan)  at (-3.0, 2.1)  {\textbf{dim\_channel}};
+  \node[dimbox] (mseg)  at (-4.1, 0.7) {\textbf{dim\_market\_segment}};
+  \node[dimbox] (ctype) at (-4.1, -0.7) {\textbf{dim\_customer\_type}};
+  \node[dimbox] (dep)   at (-3.0, -2.1) {\textbf{dim\_deposit\_type}};
+
+  \draw[arrow] (f1) -- (date);
+  \draw[arrow] (f1) -- (hotel);
+  \draw[arrow] (f1) -- (rtype);
+  \draw[arrow] (f1) -- (chan);
+  \draw[arrow] (f1) -- (mseg);
+  \draw[arrow] (f1) -- (ctype);
+  \draw[arrow] (f1) -- (dep);
+  \draw[arrow] (f2) -- (date);
+  \draw[arrow] (f2) -- (hotel);
+  \draw[arrow] (f2) -- (rtype);
+\end{tikzpicture}
+\caption{Star schema with two fact tables sharing three conformed dimensions (\textbf{bold} = shared).}
+\label{fig:starschema}
+\end{figure}
+
+\paragraph{Semi-additive measures and ratio facts.}
+The stored measures follow the dimensional modelling rule that facts must be additive wherever possible~\cite{kimball2013}. Rooms sold and realised revenue are fully additive; the room \emph{rate} is deliberately \emph{not} stored as an additive fact, because summing a rate across nights is meaningless---it is semi-additive, a snapshot-like quantity that only has meaning per night. The three KPIs are therefore stored as base measures and computed at query time as ratios of sums: $\text{ADR} = \sum \text{revenue} / \sum \text{room-nights}$, occupancy $= \sum \text{rooms sold} / \sum \text{capacity}$, and $\text{RevPAR} = \sum \text{revenue} / \sum \text{capacity}$. Averaging pre-computed per-row rates (the tempting \texttt{AVG(adr)} shortcut) would weight every booking equally regardless of the number of nights sold, and is a classic dimensional modelling error; the ratio-of-sums form guarantees that each sold room-night contributes exactly once.
+
+\paragraph{Three data corrections required by the source.}
+Our critical review of the dataset identified three issues that the schema design must resolve, recorded as design decisions:
+
+\begin{enumerate}
+  \item \textbf{Cancelled bookings generate no revenue.} Well over 30\% of the bookings in the dataset are cancelled before arrival. Revenue and occupancy must therefore be computed only from stays that actually occurred: \texttt{fact\_room\_night} carries both a booked-revenue measure (all bookings) and a realised-revenue measure (uncancelled stays only), and \texttt{fact\_daily\_occupancy} counts only realised stays. Ignoring this distinction would attribute revenue and occupancy to rooms that were never sold, inflating every KPI.
+  \item \textbf{Capacity is not given; it must be estimated.} The dataset has no attribute for the number of rooms of each hotel. We estimate capacity per hotel as the maximum number of rooms sold on any single night, computed after a warm-up window that excludes the first weeks of data (early period with partial history); the ETL recomputes this figure, asserts it against the realised-stay data, and stores it in \texttt{dim\_hotel} together with the estimation basis. The resulting estimates (187 rooms for the resort, 226 for the city hotel) are treated as assumptions with documented limitations: true occupancy may be slightly overestimated, and because the hotels in the data never sell beyond this estimated capacity, genuine overbooking is never observed (a censored observation problem).
+  \item \textbf{The two hotels are modelled separately.} H1 (resort, Algarve) and H2 (city, Lisbon) have different demand patterns, seasonality, and cancellation behaviour---pooling them into one organisation would average away the resort's pronounced summer peak. Every dimension, fact, KPI, and model run is therefore partitioned by \texttt{dim\_hotel}, and the models of Section~3.3 are fitted and run per hotel.
+\end{enumerate}
+
+\paragraph{Why Kimball rather than Inmon.}
+The choice between the two classical architectures follows the project's scope. Inmon's approach~\cite{inmon2005} builds an enterprise-wide, third-normal-form warehouse first and derives data marts from it; Kimball's~\cite{kimball2013} designs dimensional marts directly for the business process. With a single source system and a single business process, and within a one-semester project, the normalised enterprise layer has nothing to integrate: the staging area of our ETL already plays the role of Inmon's integration buffer, and the dimensional model delivers the query performance and readability that interactive what-if analysis needs. The bottom-up Kimball approach is therefore the proportionate choice.

@@ -2,9 +2,10 @@
 \begin{guide}
   \guidepart{Content to include}
   \begin{itemize}
-    \item M1: MAPE, RMSE, baseline comparison (seasonal naive)
-    \item M2: LP solution (optimal group rooms, revenue)
-    \item M3: recommended overbooking level per scenario
-    \item Forecast vs actual chart
+    \item M1: rolling backtest, WAPE/MAE/RMSE per hotel vs.\ all baselines --- report honestly if a simple baseline wins; forecast vs.\ actual chart
+    \item M2: worked group-request example on both hotels ($\Delta$ expected revenue accept vs.\ reject, breakeven ratio)
+    \item M3: optimal revenue + accepted groups; shadow prices per night/type; MILP vs.\ LP-relaxation gap
+    \item M4: $B^{*}$ per hotel and season with $P(\text{walk})$ and Monte Carlo CI; sensitivity of $B^{*}$ to cancellation-rate shifts
+    \item Replay evaluation: replay historical bookings under different booking limits (no overbooking / optimal $B^{*}$ / accept-all) with capacity stress at 100\%/90\%/80\%; report honestly if the data does not support a strong overbooking claim
   \end{itemize}
 \end{guide}
