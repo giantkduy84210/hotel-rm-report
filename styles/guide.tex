@@ -1,0 +1,28 @@
+% "Hướng dẫn viết" boxes: what a subsection should contain and which questions it should answer.
+% Delete a box once its subsection is written. \showguidesfalse in metadata.tex hides all of them at once.
+\definecolor{guideaccent}{RGB}{180,83,9}
+\definecolor{guidebackground}{RGB}{255,247,230}
+
+% The box is one line of a paragraph (accent bar + \colorbox), so it never splits across pages and LaTeX keeps it on
+% the same page as the heading above it. mdframed is not used here: it always adds a page break point before the box,
+% which leaves the heading alone at the bottom of the page when the box moves to the next one.
+\NewDocumentEnvironment{guide}{+b}{%
+  \ifshowguides
+    \par\addvspace{\medskipamount}%
+    \begingroup
+      \setlength{\fboxsep}{6pt}%
+      \noindent{\color{guideaccent}\vrule width 2pt}% without a height, the rule spans the whole box
+      \colorbox{guidebackground}{%
+        \begin{minipage}{\dimexpr\linewidth-2pt-2\fboxsep\relax}
+          \small
+          {\color{guideaccent}\textbf{Hướng dẫn viết}}\par
+          #1
+        \end{minipage}}%
+      \par
+    \endgroup
+    \addvspace{\medskipamount}%
+  \fi
+}{}
+
+% Bold label inside a guide box, e.g. \guidepart{Câu hỏi cần trả lời}
+\newcommand{\guidepart}[1]{\par\smallskip\textbf{#1}\par}
