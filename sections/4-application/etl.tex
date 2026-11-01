@@ -1,10 +1,10 @@
 \subsection{ETL Pipeline}
 \begin{guide}
-  \guidepart{Nội dung cần có}
+  \guidepart{Content to include}
   \begin{itemize}
-    \item Extract: đọc CSV (pandas)
-    \item Transform: ghép 4 cột arrival $\to$ date, tách booking-night, mã hóa surrogate keys
-    \item Load: nạp vào DuckDB star schema
-    \item Sơ đồ pipeline + screenshot DuckDB
+    \item Extract: read the CSV (pandas)
+    \item Transform: merge the 4 arrival columns $\to$ date, explode into booking-nights, encode surrogate keys
+    \item Load: into the DuckDB star schema
+    \item Pipeline diagram + DuckDB screenshot
   \end{itemize}
 \end{guide}
