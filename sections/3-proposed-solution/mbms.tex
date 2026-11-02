@@ -7,7 +7,7 @@ Turban et al. describe the model management subsystem as a module that theoretic
 
 \paragraph{Why there is no standard MBMS.}
 Unlike the DBMS market, no standard, off-the-shelf MBMS exists today. The course material states this plainly, and the reason is structural: models are heterogeneous in their mathematics (M1 is a time series, M2 a closed-form probability rule, M3 an optimisation program), so a universally applicable model manager is far harder to standardise than a universally applicable data manager~\cite{turban2011}. Every DSS team therefore designs the model management layer for its own context. The design below is ours.
-Practice motivates the effort: when Anderson and Kimes survey how hotels actually run revenue management, the ``manual system'' case means ``a series of Excel spreadsheets'' whose success is ``largely dependent on the caliber of the person'' responsible~\cite{anderson2012}---a model base without management, which is exactly the failure mode an MBMS is meant to prevent.
+Practice motivates the effort: when Anderson and Kimes survey how hotels actually run revenue management, the ``manual system'' case means ``\emph{a series of Excel spreadsheets}'' whose success is ``\emph{largely dependent on the caliber of the person}'' responsible~\cite{anderson2012}---a model base without management, which is exactly the failure mode an MBMS is meant to prevent.
 
 \paragraph{Design: manage models the way a DBMS manages data.}
 We take the DBMS analogy literally and implement the model base as relational tables inside the same DuckDB warehouse that holds the business facts, so that the MBMS has a catalog, an execution interface, and a log---the three organs a DBMS has:
