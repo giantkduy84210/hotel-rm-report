@@ -83,7 +83,7 @@ b_t &= \beta\,(L_t - L_{t-1}) + (1-\beta)\,b_{t-1} && \text{(trend)} \label{eq:m
 S_t &= \gamma\,(y_t - L_{t-1} - b_{t-1}) + (1-\gamma)\,S_{t-s} && \text{(seasonal)} \label{eq:m1seasonal}\\
 \hat{y}_{T+h} &= L_T + h\,b_T + S_{T+h-s\lceil h/s \rceil} && \text{($h$-step forecast)} \label{eq:m1forecast}
 \end{align}
-The same series is also forecast by seasonal-naive baselines (repeat last week; same week last year scaled by recent growth). \emph{Output:} a point forecast $\hat{y}_{T+h}$ for each future date, plus the empirical forecast-error distribution from a rolling backtest. The evaluation discipline follows the field: all methods compete on the same backtest, and the winner is used --- not assumed (simple exponential smoothing was the most accurate method in four of eleven tested horizons in a recent multi-property study~\cite{yeoman2024}).
+The same series is also forecast by seasonal-naive baselines (repeat last week; same week last year scaled by recent growth). \emph{Output:} a point forecast $\hat{y}_{T+h}$ for each future date, plus the empirical forecast-error distribution from a rolling backtest. The evaluation discipline follows the field: all methods compete on the same backtest, and the winner is used --- not assumed (simple exponential smoothing was the most accurate method in four of eleven tested horizons in Ampountolas and Legg's multi-property study, as summarised in Yeoman et al.'s 2024 editorial~\cite{yeoman2024}).
 
 \begin{table}[H]
 \centering
