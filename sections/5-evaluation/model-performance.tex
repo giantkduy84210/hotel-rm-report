@@ -1,13 +1,18 @@
 \subsection{Model Performance}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item M1: rolling backtest, WAPE/MAE/RMSE per hotel vs.\ all baselines --- report honestly if a simple baseline wins; forecast vs.\ actual chart
-    \item M2: worked group-request example on both hotels ($\Delta$ expected revenue accept vs.\ reject, breakeven ratio)
-    \item M3: optimal revenue + accepted groups; shadow prices per night/type; MILP vs.\ LP-relaxation gap
-    \item M4: $B^{*}$ per hotel and season with $P(\text{walk})$ and Monte Carlo CI; sensitivity of $B^{*}$ to cancellation-rate shifts
-    \item Replay evaluation: replay historical bookings under different booking limits (no overbooking / optimal $B^{*}$ / accept-all) with capacity stress at 100\%/90\%/80\%; report honestly if the data does not support a strong overbooking claim
-  \item Frame the methodology with the field's quality rubric (Jawabreh et al.~2026: out-of-sample testing, explicit baselines, uncertainty reporting, data transparency, deployment realism) --- cite Table~5 of the review
-  \item Ally for the baseline discipline: simple exponential smoothing matched or beat XGBoost for daily hotel occupancy in most tested horizons (Ampountolas \& Legg 2023, via Yeoman 2024)
-  \end{itemize}
-\end{guide}
+
+The evaluation methodology is designed against the quality rubric of the field: a 2026 systematic review of machine intelligence in hospitality identifies three recurring weaknesses --- overreliance on simulations, limited external validation, and incomplete reporting of cross-validation and benchmarking~\cite{jawabreh2026} --- and our design addresses each. Every model is evaluated on \emph{out-of-sample} data (rolling backtests, not in-sample fits); every method is compared against \emph{explicit baselines} (seasonal-naive forecasts; no-overbooking and accept-all policies); and \emph{uncertainty is reported} (Monte Carlo confidence intervals, tornado sensitivities).
+
+\paragraph{M1: forecasting backtest.}
+The backtest uses rolling monthly cut-off points across the data window: at each cut-off, only data up to that date is visible to the model, and the following 28 days are forecast. The error metrics --- MAE (mean absolute error in room-nights), RMSE, and WAPE (weighted absolute percentage error) --- are computed for every method (Holt--Winters, repeat-last-week, same-week-last-year, year-over-year scaled) on the same windows. The winner is the method with the lowest error on the test hotel's data, and the report presents the full comparison table. If a seasonal-naive baseline wins, the report says so --- the honest-evaluation discipline that the field evidence supports: in a recent multi-property study, simple exponential smoothing was the most accurate method in four of eleven tested horizons~\cite{yeoman2024}.
+
+\paragraph{M2: worked group-decision example.}
+The Littlewood rule is evaluated on a concrete scenario rather than an abstract accuracy metric, because its output is a decision, not a prediction. The demonstration presents a group request (a specified number of rooms for a specified number of nights at a specified discount ratio) against the forecast demand for each property and each season. The expected-revenue difference between accepting and rejecting is computed, and the breakeven group rate --- the rate at which the two alternatives are indifferent --- is reported. The scenario is run for both hotels in both peak and off-peak seasons, showing that the same request can be accepted in one context and rejected in another --- the essence of the tactical allocation decision.
+
+\paragraph{M3: allocation and bid prices.}
+The LP is demonstrated on a week-long scenario with several competing group offers, each spanning different nights and room types. The solver's output is presented in three forms: the optimal total revenue; the accepted set of groups; and the bid prices --- the dual values of the capacity constraints per (night, room type), which are the marginal revenue value of one more room. The demonstration shows that the shadow price of a fully utilised room type equals or exceeds its transient rate (the room is the binding constraint), while unconstrained nights have a shadow price of zero (the room is not scarce).
+
+\paragraph{M4: overbooking with replay verification.}
+The overbooking model is evaluated in two ways. First, the critical-ratio computation is verified on a known-answer instance and cross-checked by Monte Carlo simulation (20{,}000 replications, fixed seed, 95\% confidence interval). Second, a \emph{replay evaluation} runs the historical booking data forward in chronological order, applying three alternative booking-limit policies --- no overbooking ($L = C$), optimal overbooking ($L = B^{*}$ at each cut-off), and accept-all --- and compares the resulting net revenue (revenue minus walk costs) over the evaluation window. The replay uses real historical bookings, not simulated demand, and is run at three capacity levels (the estimated capacity, plus stress levels at 90\% and 80\%) because the estimated capacity is never exceeded in the historical data --- a censored-observation limitation. The results are reported honestly: if the data does not support a strong overbooking claim at the true capacity level, the report says so.
+
+\paragraph{Sensitivity of $B^{*}$.}
+The overbooking model's output is presented with a sensitivity analysis showing how the optimal booking limit moves as the cancellation rate, the walk-cost multiple, and the capacity change. This is the \emph{sensitivity analysis} mode the theory defines --- ``\emph{attempts to assess the impact of a change in the input data or parameters on the proposed solution}''~\cite{turban2011}.

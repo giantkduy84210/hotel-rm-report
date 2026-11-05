@@ -1,12 +1,18 @@
 \subsection{What-if Demonstration}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item S1: cancellation/no-show rate rises 5 points $\to$ new $B^{*}$ and overbooking level (both hotels)
-    \item S2: group request (rooms $\times$ nights at a discount ratio) $\to$ accept/reject per hotel with $\Delta$ revenue
-    \item S3: RevPAR target $+20\%$ in low season $\to$ required ADR + occupancy loss + tornado on elasticity
-    \item S4: weekly allocation with several competing group requests $\to$ accepted set + shadow prices
-    \item Demo scenario following Simon's 4 phases; what-if screenshot (slider $\to$ chart update); goal-seeking screenshot
-    \item Scenario comparison table read from \texttt{fact\_scenario\_run}
-  \end{itemize}
-\end{guide}
+
+The interactive application is demonstrated through a sequence of scenarios that exercise all three analysis modes --- what-if, sensitivity, and goal seeking --- across the three decisions of Section~2.3.
+
+\paragraph{Scenario S1: cancellation-rate increase (what-if, overbooking).}
+The revenue manager asks: what happens to the optimal booking limit if the cancellation rate rises by five percentage points in the peak season? Using the what-if screen, the manager adjusts the cancellation-rate parameter upward and observes the new $B^{*}$, the new overbooking level, and the change in expected profit. The result is displayed together with the previous run's parameters for comparison --- the scenario log preserves both.
+
+\paragraph{Scenario S2: group request (what-if, allocation).}
+A tour operator offers a block of rooms for a three-night period in August at 70\% of the transient rate. The manager enters the request into the allocation panel and sees the accept/reject recommendation with the expected-revenue difference and the breakeven group rate. The same request is run for both properties and both seasons, showing that the same offer can be accepted at one property and rejected at the other --- the essence of per-property tactical decisions.
+
+\paragraph{Scenario S3: RevPAR target (goal seeking, pricing).}
+The manager sets a target of a 20\% RevPAR increase in the low season and asks the system to find the required nightly rate. The goal-seeking screen inverts the pricing model and returns the minimum ADR, together with the occupancy at that rate and the sensitivity of the answer to the elasticity assumption (tornado chart). The manager sees not only the number but how much it depends on an unverifiable parameter --- the honest treatment of uncertainty.
+
+\paragraph{Scenario S4: weekly allocation with competing groups (what-if, LP).}
+Several group offers compete for the same week's capacity across different room types. The LP panel shows the accepted set, the rejected set, and the bid prices per night and type --- the shadow prices that give the revenue manager the marginal value of each room-night. The manager can then test what happens if one rejected group's rate is increased to the breakeven level.
+
+\paragraph{Presentation format.}
+Each scenario is documented with the input parameters, the model's output, and a short interpretation --- the same format as the evidence tables in the appendix. The full parameter sets and results are stored in \texttt{fact\_scenario\_run} and can be re-loaded into the comparison screen at any time. A demonstration video (20--30 minutes) walks through all four scenarios in sequence, following the same user flow as Simon's four phases: intelligence (dashboard), design (models generate alternatives), choice (optimisation and goal seeking), and review (scenario comparison).

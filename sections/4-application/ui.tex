@@ -1,10 +1,18 @@
 \subsection{Streamlit User Interface}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item 4 screens: Dashboard (KPIs + OLAP), Forecasting, Optimisation \& What-if (all M1--M5 parameters as interactive controls, assumptions displayed alongside), Scenario Comparison (reads \texttt{fact\_scenario\_run} back)
-    \item Every run goes through the registry and is logged
-    \item Screenshots of each screen
-    \item User flow following Simon's 4 phases
-  \end{itemize}
-\end{guide}
+
+The revenue manager interacts with the system through a Streamlit web application with four screens, each mapping to a phase of Simon's decision-making framework.
+
+\paragraph{Screen 1: Dashboard (Intelligence).}
+The entry screen presents the key performance indicators --- RevPAR, ADR, and occupancy --- for a selected hotel and date range, together with a monthly revenue chart and a segment-by-season ADR table. The user can slice the KPIs by market segment, room type, or season, observing the historical patterns that motivate the three decisions: seasonality, segment mix, and the group-versus-transient split. This screen answers the question ``\emph{what has been happening?}'' and grounds the manager's understanding before any model is invoked.
+
+\paragraph{Screen 2: Forecasting.}
+The forecasting screen runs M1 through the registry. The user selects a hotel, a demand series (total or per segment), a forecast method, and a horizon; the screen displays the forecast against the realised series, together with the backtest error metrics (MAE, RMSE, WAPE) for every method on the same rolling window. The method comparison table lets the manager see whether the smoothing method actually wins on their data --- the honest-evaluation discipline of Section~3.3.
+
+\paragraph{Screen 3: Optimisation and what-if.}
+The main interactive screen exposes the parameters of all five models as controls: for M4, the season, the cut-off $h$, the cancellation-rate adjustment, the walk-cost multiple, and the capacity; for M2/M3, the month, the group size, the number of nights, and the group-rate ratio; for M5, the target RevPAR and the elasticity. Changing a slider recomputes the model immediately and displays the resulting KPIs, the accept/reject decision, the booking limit, or the required rate --- the \emph{what-if} mode. A dedicated \emph{goal-seeking} panel lets the manager set a target RevPAR and see the minimum ADR needed to achieve it. A \emph{tornado} panel shows the sensitivity ranking. Every run is logged through the registry into \texttt{fact\_scenario\_run}, together with the full parameter set and the model version, so that any result can be traced back and reproduced.
+
+\paragraph{Screen 4: Scenario comparison.}
+The comparison screen reads \texttt{fact\_scenario\_run} back from the warehouse: the user filters by model, selects two or more past runs, and sees a side-by-side table of their parameters and headline results, with a chart comparing the KPIs across scenarios. This screen closes the loop on Simon's \emph{implementation} phase --- the manager can review what was tried, what the assumptions were, and what the outcomes were, before deciding which to adopt.
+
+\paragraph{Design principle: the interface owns no model logic.}
+Every computation goes through the same \texttt{run\_model()} registry that the scripts and tests use; the Streamlit code contains only display logic. This separation means the interface cannot drift from the models --- it cannot show a number that the registry did not produce --- and it enforces the ``supports, not replaces'' principle: the interface displays assumptions and their consequences, and the decision remains the manager's.

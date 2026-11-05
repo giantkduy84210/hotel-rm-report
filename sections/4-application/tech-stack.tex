@@ -1,9 +1,25 @@
 \subsection{Technology Stack}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item Table: tool $\times$ role $\times$ reason for choosing it
-    \item Python + DuckDB + statsmodels + SciPy + PuLP + Streamlit + Plotly + pytest
-    \item Trade-off: why not Excel/Power BI
-  \end{itemize}
-\end{guide}
+
+\begin{table}[H]
+\centering
+\caption{Technology stack: tool, role, and reason for the choice.}
+\label{tab:techstack}
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+\textbf{Tool} & \textbf{Role} & \textbf{Reason for the choice} \\
+\midrule
+Python 3.12 & Language & Dominant ecosystem for data analysis; the course's model-building expectation; team familiarity \\
+DuckDB & Data warehouse & Embedded analytical database: no server to install, columnar storage, fast SQL on a laptop --- proportionate to a 119K-row dataset and a one-semester project \\
+pandas & ETL & Standard tabular data manipulation in Python; reads CSV, transforms, and writes to DuckDB \\
+statsmodels & M1 forecasting & Provides ExponentialSmoothing (Holt--Winters) with a documented, well-tested implementation \\
+SciPy & M2/M4/M5 mathematics & Provides \texttt{norm} (normal distribution, loss function), \texttt{binom} (binomial scan), and \texttt{brentq} (root finding) --- the building blocks the MBMS theory describes \\
+PuLP & M3 LP solver & Open-source linear programming with the CBC solver; declarative model construction (add variables, constraints, objective); returns dual values (shadow prices) \\
+Streamlit & User interface & Rapidly builds interactive data apps from Python scripts; native widgets (sliders, selectors) map directly to model parameters; no front-end code required \\
+Plotly & Visualisation & Interactive charts (time series, bar, tornado) rendered inside Streamlit \\
+pytest & Testing & Automated known-answer tests for every model; runs through the same registry as the UI \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Why not Excel or Power BI.}
+A spreadsheet is the default tool for small analytical projects, but the theory explicitly identifies its limitation: a spreadsheet-based model base has ``\emph{no catalog, no uniform invocation, no run record}'' --- the three things an MBMS must provide --- and practice confirms that hotels running revenue management on ``\emph{a series of Excel spreadsheets}'' see success ``\emph{largely dependent on the caliber of the person}'' responsible~\cite{anderson2012}. Power BI provides a richer visual layer but presumes a server-hosted data model and does not expose the model-base interface our MBMS design requires. The Python/DuckDB/Streamlit stack was chosen because it implements all four subsystems of Turban's architecture --- data management, model management, user interface, and knowledge --- with no component left to improvisation, while remaining proportionate to the project's scale.

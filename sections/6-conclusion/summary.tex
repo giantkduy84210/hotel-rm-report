@@ -1,9 +1,11 @@
 \subsection{Summary}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item Summarize: what was built (DW + MBMS + 5 models + interactive UI) and what was achieved
-    \item Honest statement of what the data does and does not support
-    \item Strengths: DW + MBMS + 5 models + interactive UI
-  \end{itemize}
-\end{guide}
+
+This project has designed a decision support system for hotel revenue management, grounded in the tourism and revenue-management literature, built on a real booking dataset, and organised around the course-adopted topic: the model base management subsystem.
+
+The business problem was defined with the three required aspects --- the organisational context (a hospitality group with two Portuguese properties serving different demand patterns), the decision makers (a revenue manager at the tactical level and an operations director at the operational level), and the expected goals (maximise RevPAR, reduce off-peak vacancy, limit walked guests) --- all three measurable from the warehouse and its models. The three recurring decisions --- pricing, group-versus-transient allocation, and overbooking --- were shown to be semistructured, requiring both quantitative models and human judgment, which is precisely the territory where a DSS adds value.
+
+The proposed solution follows Turban's four-subsystem architecture. The data management subsystem is a Kimball star schema with a booking-night grain, two fact tables, seven conformed dimensions, and an ETL pipeline with quality gates. The model management subsystem --- presented in depth as the course topic --- is a model base of five declared models (M1--M5, covering forecasting, the Littlewood rule, linear-programming allocation, overbooking, and pricing by goal seeking) managed by an MBMS that implements all five theory elements (model base, MBMS, modeling language, model directory, model execution) using the same relational machinery as the data warehouse: a \texttt{model\_catalog} for the directory, a uniform \texttt{run\_model()} registry for execution and integration, and a \texttt{fact\_scenario\_run} log for reproducibility.
+
+The application is a Streamlit web interface with four screens mapped to Simon's four phases of decision making. Every model run goes through the same registry as the tests and the experiment scripts, so the interface cannot show a number the registry did not produce, and every result is traceable to its assumptions.
+
+The project's distinctive commitment is to evidence-based design: every claim in the report traces to a cited source with page numbers, citations were verified against Crossref (two commonly miscited DOIs were corrected), the dataset choice was validated by a survey of public alternatives, and the evaluation methodology is designed against the field's own quality rubric. Where a simple method may beat a complex one, or where the data cannot support a strong claim, the report says so.

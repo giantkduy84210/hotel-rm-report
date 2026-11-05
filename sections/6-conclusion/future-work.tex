@@ -1,7 +1,22 @@
 \subsection{Future Work}
-\begin{guide}
-  \guidepart{Content to include}
-  \begin{itemize}
-    \item Extensions: recapture modelling of turned-away demand, elasticity estimation (A/B tests or external data), annual seasonality (needs more years of data), richer knowledge-based subsystem, SCD Type 2, more business areas (spa, F\&B), real-time data sources
-  \end{itemize}
-\end{guide}
+
+\paragraph{Simultaneous optimisation.}
+The current design follows the reference architecture --- pricing, overbooking, and allocation in sequence. Pimentel et al.~\cite{pimentel2019} show that performing overbooking and allocation \emph{simultaneously} rather than sequentially outperforms the reference by an average of 20.2\% on nightly net revenue, especially in demand-saturated situations. Their method uses metaheuristics (genetic algorithms, particle swarm optimisation) to set effective capacity and allocation jointly. Adopting this approach would require extending the model base with a joint optimisation model and modifying the MBMS to handle the interaction --- a natural next step that is documented as future work, not attempted here.
+
+\paragraph{Demand unconstraining.}
+The current forecasts are based on realised bookings, which is a conservative estimate of true demand. The literature offers methods for unconstraining --- estimating the demand that would have materialised had capacity and rate-class closures not been enforced~\cite{pimentel2019} --- and implementing one would improve the accuracy of M1 and the downstream models.
+
+\paragraph{Overbooking stratification.}
+The show-up probability $p$ is currently estimated per (hotel, season, cut-off). The dataset supports a finer stratification by \texttt{deposit\_type} (guests who prepaid are demonstrably less likely to cancel), and the literature acknowledges that cancellation distributions are not uniform across booking classes~\cite{pimentel2019}. Stratifying $p$ by deposit type would make the overbooking model more precise.
+
+\paragraph{Elasticity estimation.}
+The price elasticity in M5 is currently an unverifiable assumption because the dataset contains no independent price variation. A field experiment (A/B testing of different rates, as the systematic review recommends~\cite{jawabreh2026}) or access to a dataset with rate-change history would allow the elasticity to be estimated rather than assumed, moving M5 from the uncertainty class to the risk class.
+
+\paragraph{Segment discovery.}
+The current segmentation uses the market-segment and customer-type dimensions provided by the dataset. Data-driven segment discovery --- using the repeat-guest and cancellation-history attributes to identify shadow-loyalty behaviour, or clustering booking patterns --- could reveal segments that the PMS's predefined categories miss. The systematic review notes that customer-type discovery is an active research direction~\cite{jawabreh2026}.
+
+\paragraph{Real-time deployment and competitor pricing.}
+The current system is batch-processed on a static extract. A production deployment would connect to a live property-management system, refresh daily, and incorporate competitor pricing scraped from the internet --- the direction the field's own research identifies as the next frontier~\cite{pimentel2019,jawabreh2026}. The four-hotel 2014--2023 successor dataset~\cite{silvestre2025}, available under NDA, would provide the richer data needed for this step.
+
+\paragraph{Revenue per available square foot.}
+The theory generalises beyond rooms: any part of the hotel that sells space for a given length of time at varying prices can be revenue-managed~\cite{anderson2012}. Extending the model base to function-space and restaurant revenue (with the RevPASH metric and its variants~\cite{yeoman2024}) would broaden the system's scope.
