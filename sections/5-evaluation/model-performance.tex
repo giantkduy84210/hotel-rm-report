@@ -1,18 +1,74 @@
 \subsection{Model Performance}
 
-The evaluation methodology is designed against the quality rubric of the field: a 2026 systematic review of machine intelligence in hospitality identifies three recurring weaknesses --- overreliance on simulations, limited external validation, and incomplete reporting of cross-validation and benchmarking~\cite{jawabreh2026} --- and our design addresses each. Every model is evaluated on \emph{out-of-sample} data (rolling backtests, not in-sample fits); every method is compared against \emph{explicit baselines} (seasonal-naive forecasts; no-overbooking and accept-all policies); and \emph{uncertainty is reported} (Monte Carlo confidence intervals, tornado sensitivities).
+The evaluation methodology is designed against the quality rubric of the field: a 2026 systematic review of machine intelligence in hospitality identifies three recurring weaknesses --- overreliance on simulations, limited external validation, and incomplete reporting of cross-validation and benchmarking~\cite{jawabreh2026} --- and our design addresses each. Every model is evaluated on \emph{out-of-sample} data (rolling backtests, not in-sample fits); every method is compared against \emph{explicit baselines} (seasonal-naive forecasts; no-overbooking and accept-all policies); and \emph{uncertainty is reported} (Monte Carlo confidence intervals, tornado sensitivities). All numbers below were produced by the executed application through the same \texttt{run\_model()} registry the interface uses; each is reproducible from its logged parameters in \texttt{fact\_scenario\_run}.
 
 \paragraph{M1: forecasting backtest.}
-The backtest uses rolling monthly cut-off points across the data window: at each cut-off, only data up to that date is visible to the model, and the following 28 days are forecast. The error metrics --- MAE (mean absolute error in room-nights), RMSE, and WAPE (weighted absolute percentage error) --- are computed for every method (Holt--Winters, repeat-last-week, same-week-last-year, year-over-year scaled) on the same windows. The winner is the method with the lowest error on the test hotel's data, and the report presents the full comparison table. If a seasonal-naive baseline wins, the report says so --- the honest-evaluation discipline that the field evidence supports: in a recent multi-property study, simple exponential smoothing was the most accurate method in four of eleven tested horizons~\cite{yeoman2024}.
+The backtest uses rolling monthly cut-off points across the data window: at each cut-off, only data up to that date is visible to the model, and the following 28 days are forecast. The error metrics --- MAE (mean absolute error in room-nights), RMSE, and WAPE (weighted absolute percentage error) --- are computed for every method (Holt--Winters, repeat-last-week, year-over-year scaled) on the same 13 windows. Table~\ref{tab:backtest} presents the full comparison.
+
+\begin{table}[H]
+\centering
+\caption{M1 rolling backtest, 13 monthly cut-offs $\times$ 28-day horizons (executed run).}
+\label{tab:backtest}
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+\textbf{Hotel} & \textbf{Method} & \textbf{MAE} & \textbf{RMSE} & \textbf{WAPE} & $\sigma$ \\
+\midrule
+H1 & Holt--Winters & \textbf{17.68} & \textbf{26.88} & \textbf{0.1130} & 26.36 \\
+H1 & repeat-last-week & 17.96 & 28.76 & 0.1148 & 28.55 \\
+H1 & year-over-year scaled & 19.94 & 33.22 & 0.1274 & 33.16 \\
+\midrule
+H2 & \textbf{repeat-last-week} & \textbf{26.24} & \textbf{39.69} & \textbf{0.1349} & 39.73 \\
+H2 & Holt--Winters & 27.62 & 42.78 & 0.1420 & 42.79 \\
+H2 & year-over-year scaled & 71.10 & 136.04 & 0.3654 & 128.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The winners differ by property: \emph{Holt--Winters wins at the resort (H1), but the seasonal-naive baseline wins at the city hotel (H2)}. The report says so, and the application acts on it --- M1's \texttt{auto} mode reads the winner from the catalog's stored backtest and uses repeat-last-week for H2. This is the honest-evaluation discipline the field evidence supports: in a recent multi-property study, simple exponential smoothing was the most accurate method in four of eleven tested horizons~\cite{yeoman2024}. The pooled error standard deviations ($\sigma = 26.4$ for H1, $39.7$ for H2) are what M2 consumes as its demand-distribution uncertainty.
 
 \paragraph{M2: worked group-decision example.}
-The Littlewood rule is evaluated on a concrete scenario rather than an abstract accuracy metric, because its output is a decision, not a prediction. The demonstration presents a group request (a specified number of rooms for a specified number of nights at a specified discount ratio) against the forecast demand for each property and each season. The expected-revenue difference between accepting and rejecting is computed, and the breakeven group rate --- the rate at which the two alternatives are indifferent --- is reported. The scenario is run for both hotels in both peak and off-peak seasons, showing that the same request can be accepted in one context and rejected in another --- the essence of the tactical allocation decision.
+The Littlewood rule is evaluated on a concrete scenario rather than an abstract accuracy metric, because its output is a decision, not a prediction. Table~\ref{tab:m2demo} reports the executed runs: the same request --- 25 rooms for three nights at 70\% of the transient rate --- for both properties in peak and off-peak season, with the forecast demand ($\mu$ from M1, $\sigma$ from the backtest) and the protection level $y^{*}$ computed per context.
+
+\begin{table}[H]
+\centering
+\caption{M2 executed runs: a 25-room group request, 3 nights, at 70\% of the transient rate.}
+\label{tab:m2demo}
+\begin{tabular}{@{}llrrrrl@{}}
+\toprule
+\textbf{Property} & \textbf{Season} & $p_H$ & $\mu$ & $y^{*}$ & \textbf{Unprotected} & \textbf{Decision} \\
+\midrule
+H1 resort & High & 146.43 & 180.3 & 167.5 & 19.5 & \textbf{REJECT} (25 > 19.5) \\
+H2 city & High & 117.69 & 212.2 & 196.6 & 29.4 & \textbf{ACCEPT} (25 $\le$ 29.4) \\
+H1 resort & Low & 56.53 & 84.8 & 72.1 & 114.9 & ACCEPT \\
+H2 city & Low & 87.99 & 110.5 & 94.9 & 131.1 & ACCEPT \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The flip the report promised is real and data-driven: \emph{the same 25-room offer is rejected at the resort in August but accepted at the city hotel in the same week} --- because the resort's peak demand ($\mu = 180$ against capacity 187) leaves only 19.5 rooms worth protecting, while the city hotel's lower protection level ($y^{*} = 196.6$ against capacity 226) leaves 29.4. The breakeven rates quantify the boundary: EUR\,86.35 for H1-High (59\% of the transient rate) and EUR\,56.81 for H2-High (48\%). In the low season both properties accept at almost any rate --- the breakeven is approximately zero, because forecast demand (85--110 rooms) is so far below capacity that the marginal rooms cost nothing --- and a smaller 10-room request is accepted everywhere, including H1-High (unprotected capacity 19.5 $\ge$ 10).
 
 \paragraph{M3: allocation and bid prices.}
-The LP is demonstrated on a week-long scenario with several competing group offers, each spanning different nights and room types. The solver's output is presented in three forms: the optimal total revenue; the accepted set of groups; and the bid prices --- the dual values of the capacity constraints per (night, room type), which are the marginal revenue value of one more room. The demonstration shows that the shadow price of a fully utilised room type equals or exceeds its transient rate (the room is the binding constraint), while unconstrained nights have a shadow price of zero (the room is not scarce).
+The mixed-integer program is demonstrated on one August week at the city hotel (7--13 August 2017) with five competing group offers spanning different nights and room types (12--25 rooms, 2--5 nights, EUR\,78--108 per night). The executed run returns the optimal revenue $Z^{*} = $ EUR\,199{,}078, accepts the high-rate offer (12 rooms $\times$ 5 nights at EUR\,108 on room type A) and rejects the other four, whose rates sit below the opportunity cost of peak-season capacity. The bid prices --- the dual values of the per-(night, room type) capacity constraints, extracted by re-solving the program with the acceptances fixed --- come out positive on 28 (night, type) combinations, ranging from EUR\,33.6 to EUR\,129.9 per room-night: the shadow price of the binding type approaches its transient rate, while unconstrained combinations price at zero. Raising one rejected offer's rate (20 rooms $\times$ 4 nights, type A, from EUR\,88) flips its verdict at a breakeven of \textbf{EUR\,107.17} --- the LP's own answer to ``what would this group have to pay?''.
 
 \paragraph{M4: overbooking with replay verification.}
-The overbooking model is evaluated in two ways. First, the critical-ratio computation is verified on a known-answer instance and cross-checked by Monte Carlo simulation (20{,}000 replications, fixed seed, 95\% confidence interval). Second, a \emph{replay evaluation} runs the historical booking data forward in chronological order, applying three alternative booking-limit policies --- no overbooking ($L = C$), optimal overbooking ($L = B^{*}$ at each cut-off), and accept-all --- and compares the resulting net revenue (revenue minus walk costs) over the evaluation window. The replay uses real historical bookings, not simulated demand, and is run at three capacity levels (the estimated capacity, plus stress levels at 90\% and 80\%) because the estimated capacity is never exceeded in the historical data --- a censored-observation limitation. The results are reported honestly: if the data does not support a strong overbooking claim at the true capacity level, the report says so.
+The overbooking model is evaluated in two ways. First, the critical-ratio computation is verified on a known-answer instance (checked against an explicit brute-force enumeration in the automated test suite) and cross-checked by Monte Carlo simulation (20{,}000 replications, fixed seed, 95\% confidence interval); on the executed run the Monte Carlo mean reproduces the analytic expected profit to within 2\%. Second, a \emph{replay evaluation} runs the historical booking data forward in chronological booking order --- a booking-limit policy caps how many bookings may be on the books covering any given night --- applying three policies: no overbooking ($L = C$), optimal overbooking ($L = B^{*}$, season-specific, cut-off $h = 7$), and accept-all. Table~\ref{tab:replay} reports the executed results over the 14-month evaluation window at the estimated capacity.
+
+\begin{table}[H]
+\centering
+\caption{M4 replay evaluation, arrivals July 2016 -- August 2017 (427 nights), at the estimated capacity (executed run).}
+\label{tab:replay}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+ & \multicolumn{3}{c}{\textbf{Net revenue (EUR)}} & \multicolumn{3}{c}{\textbf{Walked guests}} \\
+\textbf{Property} & no-OB & optimal $B^{*}$ & accept-all & no-OB & optimal & accept-all \\
+\midrule
+H1 (C=187) & 4{,}651{,}993 & 4{,}776{,}803 & 6{,}607{,}764 & 0 & 0 & 0 \\
+H2 (C=226) & 5{,}314{,}911 & 5{,}695{,}614 & 9{,}135{,}224 & 0 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three honest readings follow. First, \emph{naive no-overbooking is expensive}: capping on-the-books bookings at capacity rejects late bookings (many of which would have been kept) and loses 30\% of achievable revenue at H1 and 42\% at H2 --- the classic overbooking argument, quantified. Second, \emph{the newsvendor-optimal limit recovers part of that gap} --- $+2.7\%$ at H1 and $+7.2\%$ at H2 --- with zero walked guests. Third, \emph{accept-all is an upper bound that only looks safe because the data is censored}: the estimated capacity is never exceeded by realised stays, so accept-all reproduces reality with no walks at the estimated capacity --- exactly the censored-observation limitation of Section~5.3. At stress levels the walk-cost trade-off activates: at 80\% of capacity, accept-all walks 5{,}971 guests at H1 and 9{,}320 at H2, paying EUR\,0.9--1.5M in walk costs, while the optimal limit still walks none (its binomial model is conservative relative to the replay's realised outcomes, because chronologically early bookings cancel more than the model's pooled show-up rate assumes). We conclude what the data supports: overbooking limits deliver a measurable revenue gain at zero observed walk risk in this dataset, and the stress replay shows the trade-off the manager would face on genuinely scarce nights.
 
 \paragraph{Sensitivity of $B^{*}$.}
-The overbooking model's output is presented with a sensitivity analysis showing how the optimal booking limit moves as the cancellation rate, the walk-cost multiple, and the capacity change. This is the \emph{sensitivity analysis} mode the theory defines --- ``\emph{attempts to assess the impact of a change in the input data or parameters on the proposed solution}''~\cite{turban2011}.
+The overbooking model's output is presented with a sensitivity analysis showing how the optimal booking limit moves as the cancellation rate, the walk-cost multiple, and the capacity change (scenario S1, Section~5.2). This is the \emph{sensitivity analysis} mode the theory defines --- ``\emph{attempts to assess the impact of a change in the input data or parameters on the proposed solution}''~\cite{turban2011}.
