@@ -321,6 +321,7 @@ The models compose exactly as the theory describes model integration --- ``\emph
   dwnode/.style={rectangle, draw=blue!70!black, thick, fill=blue!10, rounded corners=2pt, align=center, minimum height=0.8cm, inner sep=5pt},
   uinode/.style={rectangle, draw=black!60, thick, fill=black!4, rounded corners=2pt, align=center, minimum height=1.1cm, inner sep=5pt},
   fl/.style={-{Stealth[length=2.5mm]}, thick},
+  dfl/.style={-{Stealth[length=2.5mm]}, thick, dashed},
   flb/.style={font=\tiny, inner sep=1.5pt, fill=white}]
 \node[dwnode, minimum width=11.4cm] (dw) at (5,2.3) {Data warehouse --- star schema of Section~3.2};
 \node[mnode] (m1) at (0,0) {M1 Forecast\\ $\hat{y}_{T+h}$ per night};
@@ -336,14 +337,14 @@ The models compose exactly as the theory describes model integration --- ``\emph
 \draw[fl] (dw.south -| m4) -- node[flb, right=1pt, pos=0.8] {$\hat{p}$ at cut-off $h$; $C$} (m4);
 \draw[fl] (m1) -- node[flb, above] {$\mu, \sigma$} (m2);
 \draw[fl] (m1) -- node[flb, below left] {$\hat{D}_{d,t}$} (m3);
-\draw[fl] (m3) -- node[flb, above] {allocation} (m4);
+\draw[dfl] (m3) -- node[flb, above] {protects} (m4);
 \draw[fl] (m2.south east) -- node[flb, below] {accept/reject; $\Delta$} (ui.west);
 \draw[fl] (m5.east) -- node[flb, above right=1pt] {required ADR} (ui.north west);
 \draw[fl] (m4.east) -- node[flb, below] {$B^{*}$; walk risks} (ui.south west);
 \draw[fl] (m3.south) to[out=-60,in=200] node[flb, below] {bid prices $\pi_{d,t}$} (ui.south);
 \end{tikzpicture}%
 }
-\caption{Model chaining. Solid arrows carry the data each consumer reads: M1's forecasts parameterise M2's demand distribution ($\mu, \sigma$) and M3's demand bounds ($\hat{D}_{d,t}$); M3's accepted allocation is what M4's booking limit protects; every model reads its own inputs from the warehouse; recommendations reach the revenue manager through the interface, and group offers and targets enter the same way (not drawn). In the influence-diagram terms of Figures~\ref{fig:id-m2} and \ref{fig:id-m3}, M1's output reaches the decision nodes of M2 and M3 as \emph{informational} arcs --- its value is known when those decisions are made.}
+\caption{Model chaining. Solid arrows are implemented data flows: M1's forecasts parameterise M2's demand distribution ($\mu, \sigma$) and M3's demand bounds ($\hat{D}_{d,t}$) through real function calls, and every model reads its own inputs from the warehouse; recommendations reach the revenue manager through the interface, and group offers and targets enter the same way (not drawn). The dashed M3$\to$M4 edge is a protection rationale rather than a data flow: the booking limit exists so that committed rooms --- including the allocations M3 accepted --- can be honoured despite cancellations; in the implementation, M4 reads capacity and show-up rates directly from the warehouse. In the influence-diagram terms of Figures~\ref{fig:id-m2} and \ref{fig:id-m3}, M1's output reaches the decision nodes of M2 and M3 as \emph{informational} arcs --- its value is known when those decisions are made.}
 \label{fig:chaining}
 \end{figure}
 
