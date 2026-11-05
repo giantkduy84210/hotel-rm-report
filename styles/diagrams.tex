@@ -8,12 +8,24 @@
     label/.style={font=\small\itshape, text=gray},
 }
 
-% Influence-diagram styles (Ch. 7: decision=rectangle, chance=ellipse, value=diamond; dashed=external parameter)
+% ---------------------------------------------------------------
+% Influence-diagram styles, following the shape conventions of
+% Shachter (1986) as rendered on the course slides (Ch. 7, slide 21):
+%   decision node = sharp-cornered rectangle
+%   chance node   = ellipse
+%   value node    = rounded rectangle (NOT a diamond)
+% Arcs:
+%   idar   = conditional arc (into chance and value nodes:
+%            probabilistic / functional dependence)
+%   idinfo = informational arc (into decision nodes only:
+%            time precedence -- the source is known when the
+%            decision is made)
+% ---------------------------------------------------------------
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning}
 \tikzset{
     iddec/.style={rectangle, draw=teal!70!black, thick, fill=teal!10, align=center, inner sep=3pt, font=\scriptsize, minimum height=0.7cm},
-    idint/.style={ellipse, draw=orange!80!black, thick, fill=orange!10, align=center, inner sep=2pt, font=\scriptsize, minimum height=0.7cm},
-    idparam/.style={ellipse, draw=orange!80!black, thick, dashed, fill=orange!5, align=center, inner sep=2pt, font=\scriptsize, minimum height=0.7cm},
-    idval/.style={diamond, aspect=1.7, draw=blue!70!black, thick, fill=blue!10, align=center, inner sep=1pt, font=\scriptsize, minimum height=0.7cm},
-    idar/.style={-{Stealth[length=2mm]}, thick}
+    idchance/.style={ellipse, draw=orange!80!black, thick, fill=orange!10, align=center, inner sep=2pt, font=\scriptsize, minimum height=0.7cm},
+    idval/.style={rectangle, rounded corners=6pt, draw=green!45!black, thick, fill=green!8, align=center, inner sep=3pt, font=\scriptsize, minimum height=0.7cm},
+    idar/.style={-{Stealth[length=2mm]}, thick},
+    idinfo/.style={-{Stealth[length=2mm]}, thick, dashed}
 }

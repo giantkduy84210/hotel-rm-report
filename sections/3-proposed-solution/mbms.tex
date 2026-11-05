@@ -16,8 +16,55 @@ Turban et al.\ specify the composition of the model management subsystem: it ``\
 \paragraph{The four functions of the MBMS.}
 The MBMS software ``\emph{has four main functions}: \emph{model creation, using programming languages, DSS tools and/or subroutines, and other building blocks; generation of new routines and reports; model updating and changing; [and] model data manipulation}''~\cite{turban2011}. Our design provides each: \emph{creation} --- a new model joins the suite by writing one Python module against the declared interface and inserting one row into \texttt{model\_catalog}, reusing the building blocks (statsmodels, PuLP); \emph{generation of new routines and reports} --- every scenario run produces a structured result row that the comparison screen turns into reports, and combinations of runs (baseline vs.\ alternative) are new analyses without new code; \emph{updating and changing} --- the catalog row versions a model's declaration and assumptions, so a change is visible, comparable, and revertible; \emph{data manipulation} --- parameters are injected at run time through the registry, which is precisely what makes what-if analysis possible without touching model code.
 
-\paragraph{Model directory details.}
-Beyond the definition, the directory answers ``\emph{questions about the availability and capability of the models}''~\cite{turban2011}. Our \texttt{model\_catalog} is queried by the interface to list what models exist, what each answers, and what parameters each accepts; its capability descriptions are what the decision maker reads before choosing a model, and what the run registry validates parameters against.
+\paragraph{Model directory: the theory.}
+The theory fixes the directory's duties in three sentences: ``\emph{the role of the model directory is similar to that of a database directory. It is a catalog of all the models and other software in the model base. It contains model definitions, and its main function is to answer questions about the availability and capability of the models}'' (p.~99)~\cite{turban2011}. Two further duties appear in the MBMS function list: the directory ``\emph{catalogs and displays the directory of models for use by several individuals in the organization}'' and ``\emph{tracks model data and application use}'' (p.~100)~\cite{turban2011}. What the theory does \emph{not} fix is the field schema --- as argued above, there is no standard MBMS to adopt one from --- so the schema below is our design, and every column is annotated with the directory duty it serves.
+
+\paragraph{Model directory: the schema.}
+Our directory is the \texttt{model\_catalog} table inside the same DuckDB warehouse that holds the business facts. Table~\ref{tab:catalogschema} gives its schema; Table~\ref{tab:catalogdisplay} shows the five rows as the interface displays them. Three design points follow from the theory rather than from convenience. First, \emph{model definitions} are stored as data, not as documentation: the \texttt{variables} column carries each model's four-role declaration (the tables of Section~3.3), so the directory can answer capability questions by being queried, not by a developer being asked. Second, the \texttt{params\_schema} column is what the run registry validates every \texttt{run\_model()} call against --- the directory is load-bearing machinery, not a help page. Third, \emph{usage tracking} is realised by joining \texttt{model\_catalog} to \texttt{fact\_scenario\_run} on \texttt{model\_id}: the run log records every execution with its parameters, so ``\emph{tracks model data and application use}'' is answered by a SQL query over the log.
+
+\begin{table}[H]
+\centering
+\caption{The \texttt{model\_catalog} schema --- our design, mapped onto the directory's theory duties.}
+\label{tab:catalogschema}
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+\textbf{Column (type)} & \textbf{Directory duty} & \textbf{Content} \\
+\midrule
+\texttt{model\_id} (TEXT, PK) & availability & identifier used by every caller and by the run log \\
+\texttt{name} (TEXT) & catalog & short name (``Forecasting'', ``Littlewood rule'', \ldots) \\
+\texttt{purpose} (TEXT) & capability & the business question answered (Table~\ref{tab:modelcatalog}) \\
+\texttt{model\_group} (TEXT) & capability & one of the seven model groups (Table~4.1) \\
+\texttt{classification} (TEXT) & capability & static/dynamic; certainty/risk/uncertainty; management level \\
+\texttt{variables} (JSON) & model definitions & the four-role declaration with symbols (Section~3.3, Tables~\ref{tab:m1vars}--\ref{tab:m5vars}) \\
+\texttt{params\_schema} (JSON) & model definitions & name, type, range, and default of every parameter --- what the registry validates against \\
+\texttt{assumptions} (JSON) & model definitions & declared assumptions (e.g.\ walk cost $1.5\times$ ADR; binomial independence) \\
+\texttt{limitations} (TEXT) & capability & what the model does not cover \\
+\texttt{method} (TEXT) & model definitions & solution method and library (e.g.\ \texttt{binom.sf} scan + Monte Carlo) \\
+\texttt{module\_path} (TEXT) & execution linkage & the Python module the registry imports for this model \\
+\texttt{metrics} (JSON) & capability & evaluation results (backtest errors, replay outcomes) \\
+\texttt{version}, \texttt{created\_at} & updating & versioning, so a changed declaration is visible and revertible \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{The model directory as the interface displays it (the five rows of \texttt{model\_catalog}).}
+\label{tab:catalogdisplay}
+\begin{tabularx}{\textwidth}{@{}l X X@{}}
+\toprule
+\textbf{ID} & \textbf{Group and method} & \textbf{Key parameters $\to$ outputs} \\
+\midrule
+M1 & predictive: Holt--Winters ETS plus seasonal-naive baselines & hotel, horizon $\to$ $\hat{y}_{T+h}$; MAE, RMSE, WAPE \\
+M2 & optimisation by analytic formula: Littlewood closed form & $G$, $n$, $p_L$, $p_H$, $\mu$, $\sigma$, $C$ $\to$ accept or reject, $\Delta$, breakeven rate \\
+M3 & optimisation by algorithm: LP solved with PuLP and CBC & date range, offers, $K_{d,t}$ $\to$ $Z^{*}$, accepted set, bid prices \\
+M4 & optimisation by analytic formula, verified by Monte Carlo simulation & $C$, $p$, $r$, $c_w$ $\to$ $B^{*}$, $P(\text{walk})$, $\mathrm{E}[\text{walks}]$ \\
+M5 & what-if by formula: Brent inversion with tornado sensitivity & $\mathrm{occ}_0$, $\mathrm{ADR}_0$, $e$, target $\to$ required ADR, tornado \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Read as a whole, the directory answers the two questions the theory assigns it: \emph{availability} --- is there a model for this question? (the \texttt{purpose} column) --- and \emph{capability} --- what can it do, and what can it not? (the \texttt{classification} and \texttt{limitations} columns).
 
 \paragraph{Model selection.}
 Which model to use for which situation ``\emph{cannot be done by the MBMS because it requires expertise and therefore is done manually}''~\cite{turban2011}; our design keeps selection manual --- the revenue manager chooses --- but assists it through the catalog: each row's \emph{purpose} field states the business question the model answers, which is exactly the information a selector needs. The subtler distinction the theory draws --- model selection versus \emph{solution-method selection} (which algorithm solves a chosen model class) --- is handled once at design time: M2 and M4 use closed-form critical ratios because their structure is two-class and single-period, M3 uses an LP solver because the week-level allocation problem has no closed form, and these choices are recorded in the catalog rather than re-decided per run.

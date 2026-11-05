@@ -6,7 +6,43 @@ The models are not built on the raw CSV extract but on the warehouse of Section~
 \subsubsection{The modelling framework}
 
 \paragraph{The four variable types.}
-The course requires every model to declare four variable roles~\cite{turban2011}. \emph{Decision variables} ``\emph{can be changed and manipulated by the decision maker, [and] correspond to the decisions to be made}''; \emph{uncontrollable variables (parameters)} ``\emph{affect the result but [are] not under the control of the decision maker}''; \emph{intermediate variables} ``\emph{contain the values of intermediate outcomes}''; and \emph{result variables} ``\emph{express the result of a decision, usually one of the goals}''. The book generalises this into the structure of every quantitative model (Figure~4.1): decision variables, uncontrollable variables, and parameters enter, are combined by mathematical relationships into intermediate variables, and produce the results. Every model below follows exactly this declaration discipline.
+The course requires every model to declare four variable roles~\cite{turban2011}. \emph{Decision variables} ``\emph{can be changed and manipulated by the decision maker, [and] correspond to the decisions to be made}''; \emph{uncontrollable variables (parameters)} ``\emph{affect the result but [are] not under the control of the decision maker}''; \emph{intermediate variables} ``\emph{contain the values of intermediate outcomes}''; and \emph{result variables} ``\emph{express the result of a decision, usually one of the goals}''. The book generalises this into the structure of every quantitative model (Figure~4.1): decision variables, uncontrollable variables, and parameters enter, are combined by mathematical relationships into intermediate variables, and produce the results~\cite{turban2011}. Every model below follows exactly this declaration discipline: for each model, Table~\ref{tab:m1vars}--\ref{tab:m5vars} assigns every quantity a role and a symbol before any prose description is given.
+
+\paragraph{Influence diagrams: the formal definition.}
+An influence diagram is ``\emph{a graphical representation of a model}'' --- ``\emph{a model of a model}'' --- used ``\emph{to assist in model design, development, and understanding}''~\cite{turban2011}, in which ``\emph{influence refers to the dependency of a variable on the level of another variable}''~\cite{co4031slides}. The formal definition we follow is Shachter's~\cite{shachter1986}. An influence diagram is a network consisting of a directed graph $G = (N, A)$ with associated node sets and functions, whose node set $N$ is partitioned into three disjoint sets --- decision nodes $D$, chance nodes $C$, and value nodes $V$. There is at most one value node $v \in V$, drawn as a rounded rectangle, which represents the objective to be maximised in expectation. There are zero or more chance nodes in $C$, shown as ellipses, representing random variables (uncertain quantities). There may be zero or more decision nodes in $D$, drawn as rectangles, corresponding to the choices available to the decision maker. The arcs take their meaning from their target: arcs into utility and chance nodes are \emph{conditional} and represent probabilistic dependence (for deterministic intermediates: functional dependence); arcs into decision nodes are \emph{informational} and imply time precedence --- the source is known when the decision is made~\cite{shachter1986}. Figure~\ref{fig:idlegend} fixes the drawing conventions used for every diagram in this section.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\node[iddec] (d) at (0,0) {decision $d \in D$};
+\node[idchance] (c) at (3.4,0) {chance $c \in C$};
+\node[idval] (v) at (6.6,0) {value $v \in V$};
+\draw[idar] (0,-1.1) -- (1.5,-1.1) node[right, font=\scriptsize] {conditional arc: probabilistic or functional dependence (into chance and value nodes)};
+\draw[idinfo] (0,-1.7) -- (1.5,-1.7) node[right, font=\scriptsize] {informational arc: time precedence (into decision nodes only)};
+\end{tikzpicture}
+\caption{Influence-diagram conventions (following Shachter~\cite{shachter1986} as rendered on the course slides): rectangle = decision node, ellipse = chance node, rounded rectangle = value node (at most one per diagram).}
+\label{fig:idlegend}
+\end{figure}
+
+\paragraph{From variable roles to node types.}
+The four roles of the quantitative model map onto the three node types of the graph as Table~\ref{tab:rolemap} shows. One asymmetry deserves emphasis: \emph{parameters} --- uncontrollable variables with fixed values, such as rates, capacities, and management-set costs --- are \emph{not} nodes in the strict formalism; they belong to the functions associated with the nodes, and we declare them in each model's variable table instead of drawing them. Random uncontrollable variables and intermediate variables are both drawn as chance nodes; the distinction between them (a conditional distribution versus a deterministic function of the predecessors) is made in the variable table, not the picture.
+
+\begin{table}[H]
+\centering
+\caption{The four variable roles mapped onto the influence-diagram node types.}
+\label{tab:rolemap}
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+\textbf{Role (Ch.~7 / Fig.~4.1)} & \textbf{Node type (Shachter)} & \textbf{Remark} \\
+\midrule
+Decision variable & decision node $d \in D$ (rectangle) & the choice available to the decision maker \\
+Uncontrollable, random & chance node $c \in C$ (ellipse) & has a conditional distribution given its predecessors \\
+Uncontrollable, parameter & --- (not a node) & fixed value; part of the node functions; declared in the variable tables \\
+Intermediate variable & chance node $c \in C$ (ellipse) & deterministic function of its predecessors \\
+Result variable & value node $v \in V$ (rounded rectangle) & at most one per diagram \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \paragraph{Classification axes.}
 Each model is classified on three axes~\cite{turban2011}. A \emph{static} model is solved once for a single decision situation, whereas a \emph{dynamic} model represents a process that evolves over time --- only M1 is dynamic, because demand is a time series whose forecast updates with each new observation. The certainty axis follows the decision conditions: under \emph{certainty}, inputs are taken as given (M3 receives point forecasts from M1, and the randomness is handled upstream); under \emph{risk}, outcomes are random but their distributions are estimable from data (M1's forecast errors, M2's demand distribution, M4's show-up probability); under \emph{uncertainty}, the distribution cannot be estimated and must be assumed (M5's price elasticity --- the dataset contains no independent price variation), which is why M5 reports a sensitivity analysis rather than a point claim. Independently, a model is \emph{deterministic} when its inputs are assumed known with certainty and \emph{probabilistic} when they are uncertain; linear programming is the textbook example of the former, forecasting and simulation of the latter. M3 is the only deterministic model in the suite; the other four are probabilistic.
@@ -40,35 +76,49 @@ The suite also covers six of the seven functions that constitute ``\emph{all the
 \subsubsection{The five models}
 
 \paragraph{M1 --- demand forecasting (dynamic, risk; predictive model).}
-\emph{Business question:} how many rooms will the hotel sell each night over the coming weeks? \emph{Input:} the dense time series of rooms sold per stay date (from \texttt{fact\_daily\_occupancy}), optionally split by segment, together with the calendar attributes of \texttt{dim\_date} (day of week, month, holiday flags). \emph{Computation:} Holt--Winters exponential smoothing with weekly seasonality decomposes the series into level, trend, and seasonal components and extrapolates them $h$ days ahead; the same series is also forecast by seasonal-naive baselines (repeat last week; same week last year scaled by recent growth). \emph{Output:} a point forecast $\hat{D}_d$ for each future date $d$, plus the empirical forecast-error distribution from a rolling backtest. The evaluation discipline follows the field: all methods compete on the same backtest, and the winner is used --- not assumed (simple exponential smoothing was the most accurate method in four of eleven tested horizons in a recent multi-property study~\cite{yeoman2024}).
+\emph{Business question:} how many rooms will the hotel sell each night over the coming weeks? \emph{Input:} the dense time series of rooms sold per stay date (from \texttt{fact\_daily\_occupancy}), optionally split by segment, together with the calendar attributes of \texttt{dim\_date} (day of week, month, holiday flags). \emph{Computation:} Holt--Winters exponential smoothing with weekly seasonality decomposes the series into level, trend, and seasonal components and extrapolates them $h$ days ahead. With $y_t$ the realised nightly demand, season length $s = 7$, and smoothing constants $\alpha, \beta, \gamma \in (0,1)$ estimated in the fitting step, the three state recursions and the $h$-step forecast are
+\begin{align}
+L_t &= \alpha\,(y_t - S_{t-s}) + (1-\alpha)\,(L_{t-1} + b_{t-1}) && \text{(level)} \label{eq:m1level}\\
+b_t &= \beta\,(L_t - L_{t-1}) + (1-\beta)\,b_{t-1} && \text{(trend)} \label{eq:m1trend}\\
+S_t &= \gamma\,(y_t - L_{t-1} - b_{t-1}) + (1-\gamma)\,S_{t-s} && \text{(seasonal)} \label{eq:m1seasonal}\\
+\hat{y}_{T+h} &= L_T + h\,b_T + S_{T+h-s\lceil h/s \rceil} && \text{($h$-step forecast)} \label{eq:m1forecast}
+\end{align}
+The same series is also forecast by seasonal-naive baselines (repeat last week; same week last year scaled by recent growth). \emph{Output:} a point forecast $\hat{y}_{T+h}$ for each future date, plus the empirical forecast-error distribution from a rolling backtest. The evaluation discipline follows the field: all methods compete on the same backtest, and the winner is used --- not assumed (simple exponential smoothing was the most accurate method in four of eleven tested horizons in a recent multi-property study~\cite{yeoman2024}).
 
 \begin{table}[H]
 \centering
 \caption{M1 variable declaration.}
-\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\label{tab:m1vars}
+\begin{tabularx}{0.92\textwidth}{@{}l X l@{}}
 \toprule
-\textbf{Role} & \textbf{Variables} \\
+\textbf{Role} & \textbf{Symbol and definition} & \textbf{Node} \\
 \midrule
-Decision & none (a forecasting model informs decisions; it makes none) \\
-Uncontrollable & actual demand; seasonality; events outside the data \\
-Intermediate & level, trend, seasonal components; fitted values; residuals \\
-Result & forecast $\hat{D}_d$ per night; backtest error (MAE, RMSE, WAPE) \\
+Decision & --- (a predictive model informs decisions; it makes none) & --- \\
+Uncontrollable (random) & $y_t$: realised nightly rooms sold, $t = 1,\ldots,T$ & chance \\
+Uncontrollable (parameter) & $\alpha, \beta, \gamma \in (0,1)$: smoothing constants (estimated in the fitting step); $s = 7$: season length; calendar attributes of \texttt{dim\_date} & --- (functions) \\
+Intermediate & $L_t$ level, $b_t$ trend, $S_t$ seasonal index \eqref{eq:m1level}--\eqref{eq:m1seasonal} & chance \\
+Result & $\hat{y}_{T+h}$ forecast per future date \eqref{eq:m1forecast}; backtest errors (MAE, RMSE, WAPE) & value \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=0.5cm and 1.0cm]
-\node[idparam] (cal) {calendar,\\ seasonality};
-\node[idparam, below=of cal] (past) {past demand\\ $D_{t-1}, D_{t-2}, \ldots$};
-\node[idint, right=1.3cm of cal] (comp) {level, trend,\\ seasonal components};
-\node[idval, right=1.1cm of comp] (fc) {forecast\\ $\hat{D}_d$ per night};
-\draw[idar] (cal) -- (comp);
-\draw[idar] (past) -- (comp);
-\draw[idar] (comp) -- (fc);
+\begin{tikzpicture}
+\node[idchance] (y) at (0,0) {realised demand\\ $y_1, \ldots, y_T$};
+\node[idchance] (L) at (3.0,1.05) {level $L_T$};
+\node[idchance] (b) at (3.0,0) {trend $b_T$};
+\node[idchance] (S) at (3.0,-1.05) {seasonal indices\\ $S_{T-s+1},\ldots,S_T$};
+\node[idval] (f) at (6.1,0) {forecast\\ $\hat{y}_{T+h}$};
+\draw[idar] (y) -- (L);
+\draw[idar] (y) -- (b);
+\draw[idar] (y) -- (S);
+\draw[idar] (L) -- (b);
+\draw[idar] (L) -- (f);
+\draw[idar] (b) -- (f);
+\draw[idar] (S) -- (f);
 \end{tikzpicture}
-\caption{M1 influence diagram (rectangle = decision, ellipse = intermediate/parameter, diamond = result; dashed = external parameter).}
+\caption{M1 influence diagram. There is no decision node --- a forecasting model informs decisions, it makes none. The realised series conditions the three state components \eqref{eq:m1level}--\eqref{eq:m1seasonal}, which combine into the forecast \eqref{eq:m1forecast}; in the chaining of Figure~\ref{fig:chaining}, $\hat{y}_{T+h}$ reaches the decision nodes of M2 and M3 as \emph{informational} arcs.}
 \label{fig:id-m1}
 \end{figure}
 
@@ -76,36 +126,43 @@ Result & forecast $\hat{D}_d$ per night; backtest error (MAE, RMSE, WAPE) \\
 \emph{Business question:} a group offers to book $G$ rooms for $n$ nights at a discounted rate $p_L$ --- accept or reject? \emph{Input:} the group request (rooms, nights, rate); the full transient rate $p_H$; the forecast of transient demand for the requested nights (mean $\mu$ and standard deviation $\sigma$, from M1); capacity $C$. \emph{Computation:} the classical two-class rule computes the protection level --- the number of rooms reserved for full-rate guests --- from
 \begin{equation}
 P(D_H > y^{*}) = \frac{p_L}{p_H},
+\label{eq:m2rule}
 \end{equation}
 where $D_H \sim N(\mu, \sigma^2)$ is the transient demand, so $y^{*} = \mu + \sigma\,\Phi^{-1}(1 - p_L/p_H)$. The expected revenue of accepting (group revenue plus the expected transient revenue on the remaining rooms, $p_H \cdot \mathrm{E}[\min(D_H, C-G)]$, evaluated through the normal-loss function) is compared with the expected revenue of rejecting. \emph{Output:} the accept/reject recommendation, the expected-revenue difference, and the breakeven group rate. The rule is the original closed form of revenue management~\cite{littlewood2005}; its key assumption --- discounted demand arrives before full-fare demand --- is checkable in the data (group bookings have systematically longer lead times than transient bookings), and contemporary guidance frames the same decision as dynamic group pricing~\cite{amadeus2023}.
 
 \begin{table}[H]
 \centering
 \caption{M2 variable declaration.}
-\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\label{tab:m2vars}
+\begin{tabularx}{0.92\textwidth}{@{}l X l@{}}
 \toprule
-\textbf{Role} & \textbf{Variables} \\
+\textbf{Role} & \textbf{Symbol and definition} & \textbf{Node} \\
 \midrule
-Decision & protection level $y$ (equivalently: accept/reject the group) \\
-Uncontrollable & transient demand $D_H$; rates $p_L, p_H$; capacity $C$; group size $G$, nights $n$ \\
-Intermediate & expected sales $\mathrm{E}[\min(D_H, x)]$; expected revenue per alternative \\
-Result & $\Delta$ expected revenue; accept/reject; breakeven group rate \\
+Decision & $y$: protection level (equivalently, accept/reject the group via $G \le C - y^{*}$) & decision \\
+Uncontrollable (random) & $D_H \sim N(\mu, \sigma^2)$: transient demand for the requested nights & chance \\
+Uncontrollable (parameter) & $p_L, p_H$: group and transient rates; $C$: capacity; $G, n$: group size and nights (the offer) & --- (functions) \\
+Intermediate & $X = \min(D_H, y)$: transient rooms sold; $\mathrm{E}[X]$ via the normal-loss function & chance \\
+Result & $\Delta$: expected-revenue difference (accept vs.\ reject); accept/reject; breakeven group rate & value \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=0.55cm and 1.0cm]
-\node[iddec] (y) {protection\\ level $y^{*}$};
-\node[idparam, below=of y] (d) {transient demand\\ $D_H \sim N(\mu,\sigma)$};
-\node[idint, right=1.15cm of y] (e) {$\mathrm{E}[\min(D_H,y)]$};
-\node[idval, right=1.1cm of e] (res) {$\Delta$ revenue;\\ accept / reject};
-\draw[idar] (y) -- (e);
-\draw[idar] (d) -- (e);
-\draw[idar] (e) -- (res);
+\begin{tikzpicture}
+\node[idchance] (fc) at (0,1.15) {forecast $\hat{y}$\\ (from M1)};
+\node[iddec] (y) at (0,0) {protection\\ level $y$};
+\node[idchance] (d) at (0,-1.15) {transient demand\\ $D_H \sim N(\mu,\sigma^2)$};
+\node[idchance] (x) at (3.5,0) {transient sales\\ $X=\min(D_H,y)$};
+\node[idval] (v) at (6.7,0) {expected revenue\\ difference $\Delta$};
+\draw[idinfo] (fc) -- (y);
+\draw[idar] (fc) -- (d);
+\draw[idar] (y) -- (x);
+\draw[idar] (d) -- (x);
+\draw[idar] (x) -- (v);
+\draw[idar] (y) to[bend left=16] (v);
 \end{tikzpicture}
-\caption{M2 influence diagram.}
+\caption{M2 influence diagram. The forecast enters twice, with exactly the two arc semantics Shachter distinguishes: \emph{informationally} into the decision (dashed --- its value is known when the protection level is set) and \emph{conditionally} into the demand distribution (solid --- $D_H$ is parameterised by it). Parameters ($p_L, p_H, C, G, n$) belong to the node functions and are declared in Table~\ref{tab:m2vars}.}
 \label{fig:id-m2}
 \end{figure}
 
@@ -116,6 +173,7 @@ Result & $\Delta$ expected revenue; accept/reject; breakeven group rate \\
 \quad\text{s.t.}\quad
 y_{d,t} + \sum_{g \ni (d,t)} u_{g}\, z_g \le K_{d,t}, \quad
 0 \le y_{d,t} \le \hat{D}_{d,t},
+\label{eq:m3lp}
 \end{equation}
 solved with PuLP. \emph{Output:} the optimal revenue, the accepted set of groups, and the dual value of each capacity constraint --- the \emph{bid price}: ``\emph{the sum of dual variables across the proposed stayover nights}'', with the operating rule that ``\emph{a reservation request is accepted only if total room revenue exceeds the bid price}''~\cite{pimentel2019}. Because it takes point forecasts as given, the randomness of demand is handled upstream by M1 and M2 --- hence its certainty classification. Table~\ref{tab:lpcomponents} maps the six LP components of the course onto this program.
 
@@ -140,31 +198,33 @@ Technology coefficients & $u_g$ = room-nights a group consumes on (night, type) 
 \begin{table}[H]
 \centering
 \caption{M3 variable declaration.}
-\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\label{tab:m3vars}
+\begin{tabularx}{0.92\textwidth}{@{}l X l@{}}
 \toprule
-\textbf{Role} & \textbf{Variables} \\
+\textbf{Role} & \textbf{Symbol and definition} & \textbf{Node} \\
 \midrule
-Decision & $y_{d,t}$; $z_g$ \\
-Uncontrollable & capacity $K_{d,t}$; forecasted demand $\hat{D}_{d,t}$; rates; the offer set \\
-Intermediate & shadow prices (bid prices) per (night, type) \\
-Result & optimal revenue $Z^{*}$; accepted groups; bid prices \\
+Decision & $y_{d,t} \ge 0$: transient rooms per (night, type); $z_g \in \{0,1\}$: accept group $g$ & decision \\
+Uncontrollable (random) & none at run time --- point forecasts are taken as given (randomness handled upstream by M1) & --- \\
+Uncontrollable (parameter) & $K_{d,t}$: capacity; $\hat{D}_{d,t}$: forecast demand bounds; $r_{d,t}$: transient rates; $R_g$: group revenue; $u_g$: room-nights used & --- (functions) \\
+Intermediate & $\pi_{d,t}$: shadow prices of the capacity constraints (bid prices) & chance \\
+Result & $Z^{*}$: optimal revenue; the accepted set; the bid prices $\pi_{d,t}$ & value \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=0.55cm and 1.0cm]
-\node[iddec] (x) {$y_{d,t}$, $z_g$\\ (allocations, accepts)};
-\node[idparam, below=of x] (k) {capacity $K_{d,t}$,\\ demand $\hat{D}_{d,t}$};
-\node[idint, right=1.15cm of x] (sp) {shadow prices\\ (= bid prices)};
-\node[idval, right=1.1cm of sp] (res) {optimal revenue $Z^{*}$};
-\draw[idar] (x) -- (sp);
-\draw[idar] (k) -- (sp);
-\draw[idar] (x) to[bend left=18] (res);
-\draw[idar] (sp) -- (res);
+\begin{tikzpicture}
+\node[idchance] (f) at (0,0) {forecast demand\\ $\hat{D}_{d,t}$ (from M1)};
+\node[iddec] (y) at (3.2,0.95) {transient allocation\\ $y_{d,t}$};
+\node[iddec] (z) at (3.2,-0.95) {group acceptance\\ $z_g \in \{0,1\}$};
+\node[idval] (Z) at (6.5,0) {optimal revenue $Z^{*}$};
+\draw[idinfo] (f) -- (y);
+\draw[idinfo] (f) -- (z);
+\draw[idar] (y) -- (Z);
+\draw[idar] (z) -- (Z);
 \end{tikzpicture}
-\caption{M3 influence diagram.}
+\caption{M3 influence diagram. The forecast is \emph{information} for both decisions (dashed): the program is solved after $\hat{D}_{d,t}$ is observed, which is precisely why M3 is classed under certainty --- within the model, nothing is random. The bid prices $\pi_{d,t}$ (dual values) are intermediates computed from the optimal basis and reported as results (Table~\ref{tab:m3vars}); the coefficients $K, r, R, u$ enter the objective and constraint functions.}
 \label{fig:id-m3}
 \end{figure}
 
@@ -172,36 +232,42 @@ Result & optimal revenue $Z^{*}$; accepted groups; bid prices \\
 \emph{Business question:} for a night with $C$ rooms, how many bookings $B$ should be accepted? \emph{Input:} capacity $C$; the show-up probability $p$, estimated at a cut-off $h$ days before arrival from bookings still on the books (the dataset records values as of the day prior to arrival~\cite{antonio2019}, and industry practice revises forecasts 7--30 days before arrival~\cite{jawabreh2026}); the room revenue $r$; the walk cost $c_w$, a management-set parameter --- the literature acknowledges this cost as ``\emph{subjective}''~\cite{pimentel2019}. \emph{Computation:} with $S \sim \mathrm{Binomial}(B, p)$ arrivals, the expected profit is $\pi(B) = r\,\mathrm{E}[\min(S,C)] - c_w\,\mathrm{E}[(S-C)^+]$; the optimal limit is the smallest $B$ satisfying the critical-ratio condition
 \begin{equation}
 P(S \geq C) \;\geq\; \frac{r}{r + c_w},
+\label{eq:m4ratio}
 \end{equation}
 found by an exact binomial scan and cross-checked by Monte Carlo simulation with reported confidence intervals. \emph{Output:} $B^{*}$, the overbooking level $B^{*}-C$, the probability of walking at least one guest, and the expected number of walked guests. The critical ratio is the newsvendor structure shared with the first airline overbooking models~\cite{rothstein1971,talluri2004}.
 
 \begin{table}[H]
 \centering
 \caption{M4 variable declaration.}
-\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\label{tab:m4vars}
+\begin{tabularx}{0.92\textwidth}{@{}l X l@{}}
 \toprule
-\textbf{Role} & \textbf{Variables} \\
+\textbf{Role} & \textbf{Symbol and definition} & \textbf{Node} \\
 \midrule
-Decision & booking limit $B$ (equivalently: overbooking level $B-C$) \\
-Uncontrollable & show-up probability $p$; capacity $C$; revenue $r$; walk cost $c_w$ \\
-Intermediate & arrivals $S \sim \mathrm{Bin}(B,p)$; $\mathrm{E}[\min(S,C)]$; $\mathrm{E}[(S-C)^+]$ \\
-Result & $B^{*}$; expected profit; $P(\text{walk} \geq 1)$; $\mathrm{E}[\text{walks}]$ \\
+Decision & $B$: booking limit (equivalently, overbooking level $B - C$) & decision \\
+Uncontrollable (random) & $S \sim \mathrm{Binomial}(B, p)$: arrivals (guests who show up) & chance \\
+Uncontrollable (parameter) & $p$: show-up probability at cut-off $h$; $C$: capacity; $r$: room revenue; $c_w$: walk cost (default $1.5\times$ ADR) & --- (functions) \\
+Intermediate & $O = \min(S, C)$: occupied rooms; $W = (S - C)^{+}$: walked guests & chance \\
+Result & $\pi(B)$: expected profit; $B^{*}$; $P(\text{walk} \geq 1)$; $\mathrm{E}[\text{walks}]$ & value \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=0.55cm and 1.0cm]
-\node[iddec] (b) {booking\\ limit $B^{*}$};
-\node[idparam, below=of b] (p) {$p$ (at cut-off $h$),\\ $c_w$, $r$};
-\node[idint, right=1.15cm of b] (s) {$S\sim\mathrm{Bin}(B,p)$:\\ occupied, walks};
-\node[idval, right=1.1cm of s] (res) {expected profit\\ $\pi(B^{*})$};
-\draw[idar] (b) -- (s);
-\draw[idar] (p) -- (s);
-\draw[idar] (s) -- (res);
+\begin{tikzpicture}
+\node[iddec] (B) at (0,0) {booking limit $B$};
+\node[idchance] (S) at (2.9,0) {arrivals\\ $S \sim \mathrm{Bin}(B,p)$};
+\node[idchance] (O) at (5.9,1.0) {occupied\\ $O = \min(S,C)$};
+\node[idchance] (W) at (5.9,-1.0) {walked guests\\ $W = (S-C)^{+}$};
+\node[idval] (pi) at (8.9,0) {expected profit\\ $\pi(B) = r\,\mathrm{E}[O] - c_w\,\mathrm{E}[W]$};
+\draw[idar] (B) -- (S);
+\draw[idar] (S) -- (O);
+\draw[idar] (S) -- (W);
+\draw[idar] (O) -- (pi);
+\draw[idar] (W) -- (pi);
 \end{tikzpicture}
-\caption{M4 influence diagram.}
+\caption{M4 influence diagram. All inputs apart from $B$ are parameters known at decision time (Table~\ref{tab:m4vars}), so there is no informational arc; instead the decision \emph{conditions the distribution itself}: $S \sim \mathrm{Binomial}(B, p)$ depends on how many bookings were accepted. The newsvendor structure is visible in the graph: one decision, one random quantity, two consequences (occupied, walked), one value.}
 \label{fig:id-m4}
 \end{figure}
 
@@ -211,37 +277,75 @@ Result & $B^{*}$; expected profit; $P(\text{walk} \geq 1)$; $\mathrm{E}[\text{wa
 \begin{table}[H]
 \centering
 \caption{M5 variable declaration.}
-\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\label{tab:m5vars}
+\begin{tabularx}{0.92\textwidth}{@{}l X l@{}}
 \toprule
-\textbf{Role} & \textbf{Variables} \\
+\textbf{Role} & \textbf{Symbol and definition} & \textbf{Node} \\
 \midrule
-Decision & nightly ADR \\
-Uncontrollable & baseline $\text{occ}_0$, $\text{ADR}_0$; elasticity $e$; target RevPAR \\
-Intermediate & demand response $\text{occ}(\text{ADR})$; induced $\text{RevPAR}(\text{ADR})$ \\
-Result & minimum ADR for the target; occupancy there; tornado sensitivities \\
+Decision & $\mathrm{ADR}$: nightly average daily rate & decision \\
+Uncontrollable (random) & $e$: price elasticity of demand (value genuinely unknown --- no price variation in the data) & chance \\
+Uncontrollable (parameter) & $\mathrm{occ}_0, \mathrm{ADR}_0$: season baselines (from the warehouse); target RevPAR & --- (functions) \\
+Intermediate & $\mathrm{occ}(\mathrm{ADR}) = \mathrm{occ}_0 (\mathrm{ADR}/\mathrm{ADR}_0)^{e}$: demand response & chance \\
+Result & achieved $\mathrm{RevPAR}(\mathrm{ADR}) = \mathrm{ADR} \cdot \mathrm{occ}(\mathrm{ADR})$; the required ADR (goal seeking); tornado sensitivities & value \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=0.55cm and 1.0cm]
-\node[iddec] (a) {nightly ADR};
-\node[idparam, below=of a] (e) {elasticity $e$;\\ baseline $\text{occ}_0$, $\text{ADR}_0$};
-\node[idint, right=1.15cm of a] (o) {demand response\\ $\text{occ}(\text{ADR})$};
-\node[idval, right=1.1cm of o] (res) {RevPAR achieved\\ (vs.\ target)};
-\draw[idar] (a) -- (o);
+\begin{tikzpicture}
+\node[iddec] (a) at (0,0) {nightly rate $\mathrm{ADR}$};
+\node[idchance] (e) at (3.0,1.05) {elasticity $e$\\ (uncertain)};
+\node[idchance] (o) at (3.0,-1.05) {demand response\\ $\mathrm{occ}(\mathrm{ADR})$};
+\node[idval] (v) at (6.1,0) {achieved RevPAR\\ $= \mathrm{ADR} \cdot \mathrm{occ}(\mathrm{ADR})$};
 \draw[idar] (e) -- (o);
-\draw[idar] (o) -- (res);
+\draw[idar] (a) -- (o);
+\draw[idar] (o) -- (v);
+\draw[idar] (a) to[bend left=16] (v);
 \end{tikzpicture}
-\caption{M5 influence diagram.}
+\caption{M5 influence diagram. The elasticity $e$ is a chance node --- its value is genuinely unknown, which is precisely why M5 is classed under uncertainty rather than risk. Goal seeking inverts the value function: find the $\mathrm{ADR}$ with $\mathrm{RevPAR}(\mathrm{ADR}) = \text{target}$; the tornado varies $e$, $\mathrm{occ}_0$, $\mathrm{ADR}_0$, and the target by $\pm 20\%$.}
 \label{fig:id-m5}
 \end{figure}
 
 \subsubsection{Model chaining and the analysis modes}
 
 \paragraph{Chaining.}
-The models compose exactly as the theory describes model integration --- ``\emph{directing the output of one model, say forecasting, to be processed by another one, say a linear programming planning model}''~\cite{turban2011}: M1's forecasts parameterise M2's demand distribution and M3's right-hand sides ($\hat{D}_{d,t}$); M2 answers the single-request question, M3 the multi-request week; M4 protects the chosen allocation against cancellations; and M5 closes the loop on the primary goal by translating a RevPAR target into a rate. This is also why a DSS needs several models rather than one --- ``\emph{a decision support system can include several models (sometimes dozens), each of which represents a different part of the decision-making problem}''~\cite{turban2011}.
+The models compose exactly as the theory describes model integration --- ``\emph{directing the output of one model, say forecasting, to be processed by another one, say a linear programming planning model}''~\cite{turban2011} --- and the book's compact statement of the same pattern: ``\emph{often, the results of one type of model component (e.g., forecasting) are used as input to another (e.g., production scheduling)}'' (p.~98)~\cite{turban2011}. The hotel domain has its own documented instance: at Harrah's Cherokee Casino and Hotel, ``\emph{the forecasts are used by overbooking and optimization models for inventory-control recommendations}'' (App.~Case~4.2, p.~143)~\cite{turban2011} --- a forecast feeding overbooking and optimisation models, which is precisely the M1$\to$M3/M4 structure of Figure~\ref{fig:chaining}. The classic scale demonstration is P\&G's supply-chain DSS, whose six models --- among them a demand-forecasting model, a distribution-center location model, and a transportation linear program ``\emph{fed to it from the previous model}'' (pp.~139--140) --- were ``\emph{integrated by the DSS}'' (p.~143)~\cite{turban2011}. This is also why a DSS needs several models rather than one --- ``\emph{a decision support system can include several models (sometimes dozens), each of which represents a different part of the decision-making problem}''~\cite{turban2011}: M1 answers what will happen, M2--M4 what to do with capacity, M5 what rate to set.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  mnode/.style={rectangle, draw=teal!70!black, thick, fill=teal!8, rounded corners=2pt, align=center, minimum height=0.95cm, inner sep=4pt},
+  dwnode/.style={rectangle, draw=blue!70!black, thick, fill=blue!10, rounded corners=2pt, align=center, minimum height=0.8cm, inner sep=5pt},
+  uinode/.style={rectangle, draw=black!60, thick, fill=black!4, rounded corners=2pt, align=center, minimum height=1.1cm, inner sep=5pt},
+  fl/.style={-{Stealth[length=2.5mm]}, thick},
+  flb/.style={font=\tiny, inner sep=1.5pt, fill=white}]
+\node[dwnode, minimum width=11.4cm] (dw) at (5,2.3) {Data warehouse --- star schema of Section~3.2};
+\node[mnode] (m1) at (0,0) {M1 Forecast\\ $\hat{y}_{T+h}$ per night};
+\node[mnode] (m2) at (3.6,0) {M2 Littlewood\\ accept / reject one group};
+\node[mnode] (m5) at (7.2,0) {M5 Pricing\\ required ADR};
+\node[mnode] (m3) at (1.8,-2.2) {M3 Allocation LP\\ accepted set, bid prices};
+\node[mnode] (m4) at (5.4,-2.2) {M4 Overbooking\\ booking limit $B^{*}$};
+\node[uinode] (ui) at (10.2,-1.1) {Revenue manager\\ (Streamlit UI)};
+\draw[fl] (dw.south -| m1) -- node[flb, right=1pt] {rooms-sold series; calendar} (m1);
+\draw[fl] (dw.south -| m2) -- node[flb, right=1pt] {rate card; capacity $C$} (m2);
+\draw[fl] (dw.south -| m5) -- node[flb, right=1pt] {seasonal $\mathrm{occ}_0$, $\mathrm{ADR}_0$} (m5);
+\draw[fl] (dw.south -| m3) -- node[flb, right=1pt, pos=0.8] {$K_{d,t}$; rates $r_{d,t}$} (m3);
+\draw[fl] (dw.south -| m4) -- node[flb, right=1pt, pos=0.8] {$\hat{p}$ at cut-off $h$; $C$} (m4);
+\draw[fl] (m1) -- node[flb, above] {$\mu, \sigma$} (m2);
+\draw[fl] (m1) -- node[flb, below left] {$\hat{D}_{d,t}$} (m3);
+\draw[fl] (m3) -- node[flb, above] {allocation} (m4);
+\draw[fl] (m2.south east) -- node[flb, below] {accept/reject; $\Delta$} (ui.west);
+\draw[fl] (m5.east) -- node[flb, above right=1pt] {required ADR} (ui.north west);
+\draw[fl] (m4.east) -- node[flb, below] {$B^{*}$; walk risks} (ui.south west);
+\draw[fl] (m3.south) to[out=-60,in=200] node[flb, below] {bid prices $\pi_{d,t}$} (ui.south);
+\end{tikzpicture}%
+}
+\caption{Model chaining. Solid arrows carry the data each consumer reads: M1's forecasts parameterise M2's demand distribution ($\mu, \sigma$) and M3's demand bounds ($\hat{D}_{d,t}$); M3's accepted allocation is what M4's booking limit protects; every model reads its own inputs from the warehouse; recommendations reach the revenue manager through the interface, and group offers and targets enter the same way (not drawn). In the influence-diagram terms of Figures~\ref{fig:id-m2} and \ref{fig:id-m3}, M1's output reaches the decision nodes of M2 and M3 as \emph{informational} arcs --- its value is known when those decisions are made.}
+\label{fig:chaining}
+\end{figure}
 
 \paragraph{The three analysis modes.}
 The interactive layer exposes all three analysis modes the theory defines~\cite{turban2011}: \emph{what-if analysis} (``\emph{what will happen to the solution if an input variable, an assumption, or a parameter value is changed?}'') --- every model parameter is overridable at run time, and the resulting KPIs recompute immediately; \emph{sensitivity analysis} --- M5's tornado chart varies each parameter and ranks their impact; and \emph{goal seeking} --- M5 itself. M4's Monte Carlo verification adds \emph{probabilistic simulation} --- ``\emph{a technique for conducting experiments (e.g., what-if analyses) with a computer on a model}''~\cite{turban2011} --- which is descriptive rather than normative: it does not choose $B^{*}$, it validates the choice.
