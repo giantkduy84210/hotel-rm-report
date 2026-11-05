@@ -1,11 +1,21 @@
-\subsection{Model Catalog}
+\subsection{Model Base and Model Catalog}
 
-The model base contains five models, M1--M5, covering the three decisions of Section~2: pricing is supported by M1 (demand forecasting) and M5 (pricing goal seeking), group-versus-transient allocation by M2 (Littlewood rule) and M3 (linear programming), and overbooking by M4. Following the modelling discipline of the course, every model declares its four variable roles---decision variables, uncontrollable variables, intermediate variables, and result variables---together with its classification on three axes: static versus dynamic, certainty versus risk versus uncertainty, and the management level of the decision it supports~\cite{turban2011}.
-Under this framework, a \emph{static} model is solved once for a single decision situation, whereas a \emph{dynamic} model represents a process that evolves over time --- only M1 is dynamic, because demand is a time series whose forecast updates with each new observation.
-The certainty axis follows the decision conditions: under \emph{certainty}, inputs are taken as given (M3 receives point forecasts from M1 and the randomness is handled upstream); under \emph{risk}, outcomes are random but their distributions are estimable from data (M1's forecast errors, M2's demand distribution, M4's show-up probability); under \emph{uncertainty}, the distribution cannot be estimated and must be assumed (M5's price elasticity --- the dataset contains no independent price variation), which is why M5 reports a sensitivity analysis rather than a point claim.
-In Anthony's taxonomy all five support tactical-level (management control) decisions: they set policies and limits over a booking horizon, while the operational layer---the reservation system and the front desk---executes those limits per request. Table~\ref{tab:modelcatalog} summarises the catalog; the paragraphs that follow declare each model.
-The structure follows the reference architecture of commercial revenue management systems, which execute explicit price optimisation, overbooking, and allocation in sequence, fed by demand forecasting~\cite{pimentel2019}: M1 supplies the forecasts, while M5, M4, and M2--M3 correspond to the pricing, overbooking, and allocation modules.
-The suite also covers six of the seven functions that constitute ``\emph{all the functionality of a real-world revenue management system}'' in the simulation of Pimentel et al.~\cite{pimentel2019}; the exception---estimating true demand from censored demand---is handled as a documented limitation (Section~3.2).
+\paragraph{From data to models.}
+The models are not built on the raw CSV extract but on the warehouse of Section~3.2, which supplies three ingredients. First, \emph{per-night demand with segment detail}: \texttt{fact\_room\_night} gives, for every stay night, the room rate, the segment, and whether the stay occurred --- the basis for demand time series and for the group-versus-transient split. Second, a \emph{dense capacity snapshot}: \texttt{fact\_daily\_occupancy} gives rooms sold and estimated capacity for every (hotel, date, room type), including nights with zero sales --- the denominator of occupancy and the right-hand side of every capacity constraint. Third, the \emph{booking window}: lead times and reservation-status dates record when each booking was made and, when cancelled, when --- the basis for the cutoff-based show-up probabilities. Each model consumes a specific slice of this foundation; the paragraphs below state exactly what each model takes in, computes, and produces.
+
+\subsubsection{The modelling framework}
+
+\paragraph{The four variable types.}
+The course requires every model to declare four variable roles~\cite{turban2011}. \emph{Decision variables} ``\emph{can be changed and manipulated by the decision maker, [and] correspond to the decisions to be made}''; \emph{uncontrollable variables (parameters)} ``\emph{affect the result but [are] not under the control of the decision maker}''; \emph{intermediate variables} ``\emph{contain the values of intermediate outcomes}''; and \emph{result variables} ``\emph{express the result of a decision, usually one of the goals}''. The book generalises this into the structure of every quantitative model (Figure~4.1): decision variables, uncontrollable variables, and parameters enter, are combined by mathematical relationships into intermediate variables, and produce the results. Every model below follows exactly this declaration discipline.
+
+\paragraph{Classification axes.}
+Each model is classified on three axes~\cite{turban2011}. A \emph{static} model is solved once for a single decision situation, whereas a \emph{dynamic} model represents a process that evolves over time --- only M1 is dynamic, because demand is a time series whose forecast updates with each new observation. The certainty axis follows the decision conditions: under \emph{certainty}, inputs are taken as given (M3 receives point forecasts from M1, and the randomness is handled upstream); under \emph{risk}, outcomes are random but their distributions are estimable from data (M1's forecast errors, M2's demand distribution, M4's show-up probability); under \emph{uncertainty}, the distribution cannot be estimated and must be assumed (M5's price elasticity --- the dataset contains no independent price variation), which is why M5 reports a sensitivity analysis rather than a point claim. Independently, a model is \emph{deterministic} when its inputs are assumed known with certainty and \emph{probabilistic} when they are uncertain; linear programming is the textbook example of the former, forecasting and simulation of the latter. M3 is the only deterministic model in the suite; the other four are probabilistic.
+
+\paragraph{Model categories and the management level.}
+Turban et al.\ divide the model base into strategic, tactical, operational, and analytical models: strategic models ``\emph{support top managers' strategic planning responsibilities}''; tactical models are ``\emph{used mainly by middle managers to assist in allocating and controlling the organization's resources}'', with time horizons ``\emph{from 1 month to less than 2 years}'' and mostly internal data; operational models ``\emph{support the day-to-day working activities}'' with a daily-to-monthly horizon; and analytical models --- statistical, management science, data mining, financial --- ``\emph{perform analysis on data}''~\cite{turban2011}. All five of our models are \emph{tactical}: they set policies and limits over a booking horizon, executed by the operational layer, per Anthony's taxonomy. They are also \emph{analytical} --- statistical in M1's case, management science in M2--M4's.
+
+\paragraph{The seven model groups.}
+The book's taxonomy of quantitative models (Table~4.1) places each of ours in a group: M1 is a \emph{predictive model} (forecasting); M2 and M4 are \emph{optimisation via analytic formula} (closed-form critical ratios); M3 is \emph{optimisation via algorithm} (linear programming); M4's Monte Carlo verification is a \emph{simulation}; and M5 is analysis ``\emph{by formula}'', the financial-modelling group. Table~\ref{tab:modelcatalog} summarises the catalog.
 
 \begin{table}[H]
 \centering
@@ -13,41 +23,228 @@ The suite also covers six of the seven functions that constitute ``\emph{all the
 \label{tab:modelcatalog}
 \begin{tabularx}{\textwidth}{@{}l X l l l@{}}
 \toprule
-\textbf{Model} & \textbf{Purpose} & \textbf{Class} & \textbf{Certainty} & \textbf{Level} \\
+\textbf{Model} & \textbf{Answers the question} & \textbf{Class} & \textbf{Certainty} & \textbf{Level} \\
 \midrule
-M1 Forecasting & Nightly room demand forecast for the coming weeks & Dynamic & Risk & Tactical \\
-M2 Littlewood & Accept or reject a discounted group request; protection level for full-rate guests & Static & Risk & Tactical \\
-M3 Allocation & Optimal multi-night, multi-room-type allocation of capacity between groups and transient guests & Static & Certainty & Tactical \\
-M4 Overbooking & Booking limit that balances empty rooms against walk costs & Static & Risk & Tactical \\
-M5 Pricing & Rate needed to reach a target RevPAR, with sensitivity & Static & Uncertainty & Tactical \\
+M1 Forecasting & How many rooms will we sell each night of the coming weeks? & Dynamic & Risk & Tactical \\
+M2 Littlewood & This group wants rooms at a discount --- accept or reject? & Static & Risk & Tactical \\
+M3 Allocation LP & Several groups compete for one week --- which to accept, and what is a room-night worth? & Static & Certainty & Tactical \\
+M4 Overbooking & Given cancellations, how many bookings should we accept for a night? & Static & Risk & Tactical \\
+M5 Pricing & What rate do we need to reach the RevPAR target? & Static & Uncertainty & Tactical \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\paragraph{M1 --- demand forecasting (dynamic, risk).}
-\emph{Decision variables:} the forecasting method, the seasonal period, and the forecast horizon. \emph{Uncontrollable variables:} the actual demand that will materialise, seasonality, and events outside the data. \emph{Intermediate variables:} fitted values, residuals, estimated seasonal components. \emph{Result variables:} the forecast of rooms sold per night, with the forecast error (MAE, RMSE, WAPE) measured on a rolling backtest. The primary method is Holt-Winters exponential smoothing with weekly seasonality (\texttt{statsmodels}); because the data covers only about two years, annual seasonality cannot be estimated within the model and is instead carried by same-week-last-year baselines. The model is \emph{dynamic} (it represents a process evolving over time) and operates under \emph{risk}: demand is random but its distribution is learnable from history. Forecasting is the one hotel revenue management task with the richest methodological literature~\cite{weatherford2003,song2008,peng2014}, and M1 deliberately follows the evaluation discipline of that literature: the smoothing method is compared against seasonal-naive baselines on the same backtest, and the method that wins is the one that is used---not the one that is assumed.
-Recent field evidence supports this discipline: in a 2023 multi-property study of daily hotel occupancy prediction, simple exponential smoothing was the most accurate method in four of the eleven tested horizons---winning against far more complex gradient boosting despite requiring minimal statistical knowledge~\cite{yeoman2024}.
+The structure follows the reference architecture of commercial revenue management systems, which execute explicit price optimisation, overbooking, and allocation in sequence, fed by demand forecasting~\cite{pimentel2019}: M1 supplies the forecasts, while M5, M4, and M2--M3 correspond to the pricing, overbooking, and allocation modules.
+The suite also covers six of the seven functions that constitute ``\emph{all the functionality of a real-world revenue management system}'' in the simulation of Pimentel et al.~\cite{pimentel2019}; the exception---estimating true demand from censored demand---is handled as a documented limitation (Section~3.2).
 
-\paragraph{M2 --- Littlewood rule (static, risk).}
-\emph{Decision variables:} the protection level $y$ (rooms reserved for full-rate transient guests) and the accept/reject decision on a group request. \emph{Uncontrollable variables:} transient demand $D$ per night, the full rate $p_H$, the group rate $p_L$, and capacity $C$. \emph{Intermediate variables:} the expected sales $\mathrm{E}[\min(D, x)]$ at each availability $x$. \emph{Result variables:} the expected-revenue difference between accepting and rejecting the group, and the breakeven group rate. The rule originates in airline seat control~\cite{littlewood2005} and is the classical two-class model of revenue management~\cite{talluri2004}: with low-fare demand arriving first and high-fare demand $D$ following a known distribution, the optimal protection level satisfies
+\subsubsection{The five models}
+
+\paragraph{M1 --- demand forecasting (dynamic, risk; predictive model).}
+\emph{Business question:} how many rooms will the hotel sell each night over the coming weeks? \emph{Input:} the dense time series of rooms sold per stay date (from \texttt{fact\_daily\_occupancy}), optionally split by segment, together with the calendar attributes of \texttt{dim\_date} (day of week, month, holiday flags). \emph{Computation:} Holt--Winters exponential smoothing with weekly seasonality decomposes the series into level, trend, and seasonal components and extrapolates them $h$ days ahead; the same series is also forecast by seasonal-naive baselines (repeat last week; same week last year scaled by recent growth). \emph{Output:} a point forecast $\hat{D}_d$ for each future date $d$, plus the empirical forecast-error distribution from a rolling backtest. The evaluation discipline follows the field: all methods compete on the same backtest, and the winner is used --- not assumed (simple exponential smoothing was the most accurate method in four of eleven tested horizons in a recent multi-property study~\cite{yeoman2024}).
+
+\begin{table}[H]
+\centering
+\caption{M1 variable declaration.}
+\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Role} & \textbf{Variables} \\
+\midrule
+Decision & none (a forecasting model informs decisions; it makes none) \\
+Uncontrollable & actual demand; seasonality; events outside the data \\
+Intermediate & level, trend, seasonal components; fitted values; residuals \\
+Result & forecast $\hat{D}_d$ per night; backtest error (MAE, RMSE, WAPE) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.5cm and 1.0cm]
+\node[idparam] (cal) {calendar,\\ seasonality};
+\node[idparam, below=of cal] (past) {past demand\\ $D_{t-1}, D_{t-2}, \ldots$};
+\node[idint, right=1.3cm of cal] (comp) {level, trend,\\ seasonal components};
+\node[idval, right=1.1cm of comp] (fc) {forecast\\ $\hat{D}_d$ per night};
+\draw[idar] (cal) -- (comp);
+\draw[idar] (past) -- (comp);
+\draw[idar] (comp) -- (fc);
+\end{tikzpicture}
+\caption{M1 influence diagram (rectangle = decision, ellipse = intermediate/parameter, diamond = result; dashed = external parameter).}
+\label{fig:id-m1}
+\end{figure}
+
+\paragraph{M2 --- Littlewood group decision (static, risk; optimisation via analytic formula).}
+\emph{Business question:} a group offers to book $G$ rooms for $n$ nights at a discounted rate $p_L$ --- accept or reject? \emph{Input:} the group request (rooms, nights, rate); the full transient rate $p_H$; the forecast of transient demand for the requested nights (mean $\mu$ and standard deviation $\sigma$, from M1); capacity $C$. \emph{Computation:} the classical two-class rule computes the protection level --- the number of rooms reserved for full-rate guests --- from
 \begin{equation}
-  P(D > y^{*}) = \frac{p_L}{p_H}.
+P(D_H > y^{*}) = \frac{p_L}{p_H},
 \end{equation}
-The model is \emph{static} (one decision period) and operates under \emph{risk} (the demand distribution is estimated from the warehouse). Its key assumption---that discounted demand arrives before full-fare demand---is checkable in the data: group bookings have systematically longer booking lead times than transient bookings, which the warehouse confirms through the market-segment and date dimensions.
-Contemporary industry guidance describes the same structure as \emph{dynamic group pricing}: group rates are adjusted with demand, competition, and the size and nature of the group, and group bookings have a different booking window from individual reservations~\cite{amadeus2023}.
+where $D_H \sim N(\mu, \sigma^2)$ is the transient demand, so $y^{*} = \mu + \sigma\,\Phi^{-1}(1 - p_L/p_H)$. The expected revenue of accepting (group revenue plus the expected transient revenue on the remaining rooms, $p_H \cdot \mathrm{E}[\min(D_H, C-G)]$, evaluated through the normal-loss function) is compared with the expected revenue of rejecting. \emph{Output:} the accept/reject recommendation, the expected-revenue difference, and the breakeven group rate. The rule is the original closed form of revenue management~\cite{littlewood2005}; its key assumption --- discounted demand arrives before full-fare demand --- is checkable in the data (group bookings have systematically longer lead times than transient bookings), and contemporary guidance frames the same decision as dynamic group pricing~\cite{amadeus2023}.
 
-\paragraph{M3 --- allocation as linear programming (static, certainty).}
-\emph{Decision variables:} the number of rooms sold to transient guests per (night, room type) $y_{d,t}$, and one accept variable $z_g$ per group request. \emph{Uncontrollable variables:} capacity per (night, room type), forecasted transient demand, room rates, and the set of group offers. \emph{Intermediate variables:} shadow prices of the capacity constraints. \emph{Result variables:} the optimal revenue, the accepted set of groups, and the dual value of extra capacity on each night. The program maximises total revenue subject to capacity and demand constraints, and is solved with PuLP. Where M2 answers a single group request against a transient demand distribution, M3 answers the multi-night, multi-room-type version: several group offers competing for the same capacity across a week, which is the realistic form of the allocation decision. Because it takes point forecasts as given, it is a \emph{certainty} model at the optimisation layer; the randomness of demand is handled upstream by M1 and M2. Its result variables include the shadow prices---the marginal revenue value of one more room on a constrained night---which give the revenue manager exactly the sensitivity information that Section~2's problem statement asks for.
-In the research literature this dual value is the \emph{bid price}---``\emph{the sum of dual variables across the proposed stayover nights}''---with the operating rule that ``\emph{a reservation request is accepted only if total room revenue exceeds the bid price}''~\cite{pimentel2019}.
+\begin{table}[H]
+\centering
+\caption{M2 variable declaration.}
+\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Role} & \textbf{Variables} \\
+\midrule
+Decision & protection level $y$ (equivalently: accept/reject the group) \\
+Uncontrollable & transient demand $D_H$; rates $p_L, p_H$; capacity $C$; group size $G$, nights $n$ \\
+Intermediate & expected sales $\mathrm{E}[\min(D_H, x)]$; expected revenue per alternative \\
+Result & $\Delta$ expected revenue; accept/reject; breakeven group rate \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
-\paragraph{M4 --- overbooking (static, risk).}
-\emph{Decision variables:} the booking limit $B$ (equivalently, the overbooking level $B - C$). \emph{Uncontrollable variables:} the probability $p$ that a booking still on the books actually arrives, capacity $C$, the room revenue $r$, and the walk cost $c_w$. \emph{Intermediate variables:} the number of arriving guests $S \sim \mathrm{Binomial}(B, p)$, expected occupied rooms $\mathrm{E}[\min(S, C)]$, and expected walked guests $\mathrm{E}[(S - C)^+]$. \emph{Result variables:} the optimal limit $B^{*}$, the expected profit gain, the probability of walking at least one guest, and the expected number of walked guests. The optimal limit is the smallest $B$ satisfying $P(S \geq C) \geq r / (r + c_w)$, the critical-ratio structure shared with the newsvendor problem; the heritage of this model goes back to the first airline overbooking models~\cite{rothstein1971,talluri2004}, and its joint formulation with allocation is an active topic in the hotel literature~\cite{pimentel2019}. One measurement subtlety is decisive and is enforced in the design: $p$ must be estimated from bookings that are \emph{still on the books} $h$ days before arrival---not from the final status of all bookings---because most cancellations happen early, and using the final show rate would overstate the no-show risk and recommend excessive overbooking.
-The dataset itself was constructed under the same principle: variable values were ``\emph{extracted from the bookings change log, with a timestamp relative to the day prior to arrival date}''~\cite{antonio2019}, so the data available to the model is already an on-the-books snapshot at $h = 1$.
-The choice of cut-off horizons follows industry practice: conventional hotel pricing revises its forecasts 7--30 days before arrival~\cite{jawabreh2026}, so the design measures $p$ at several cut-offs in this window (e.g., 7, 14, and 30 days before arrival), tightening as the arrival date approaches.
-In the terminology of the research literature, the booking limit sets the \emph{effective capacity}---the number of reservations deliberately held above the physical room count, net of expected cancellations and no-shows---and the walk cost that anchors it is acknowledged to be ``\emph{subjective}'' in practice~\cite{pimentel2019}, which is why $c_w$ is exposed to the decision maker as an adjustable assumption rather than hidden. Because the warehouse never observes true capacity being exceeded (issue~2 in Section~3.2), M4 is presented as a decision-support tool with management-set parameters rather than as a validated revenue guarantee, and its output is cross-checked by Monte Carlo simulation with reported confidence intervals.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.55cm and 1.0cm]
+\node[iddec] (y) {protection\\ level $y^{*}$};
+\node[idparam, below=of y] (d) {transient demand\\ $D_H \sim N(\mu,\sigma)$};
+\node[idint, right=1.15cm of y] (e) {$\mathrm{E}[\min(D_H,y)]$};
+\node[idval, right=1.1cm of e] (res) {$\Delta$ revenue;\\ accept / reject};
+\draw[idar] (y) -- (e);
+\draw[idar] (d) -- (e);
+\draw[idar] (e) -- (res);
+\end{tikzpicture}
+\caption{M2 influence diagram.}
+\label{fig:id-m2}
+\end{figure}
 
-\paragraph{M5 --- pricing goal seeking (static, uncertainty).}
-\emph{Decision variables:} the nightly ADR to charge in the target season. \emph{Uncontrollable variables:} the baseline occupancy and ADR, the price elasticity $e$, the capacity, and the target RevPAR. \emph{Intermediate variables:} the demand response $\text{occ}(\text{ADR}) = \text{occ}_0 \cdot (\text{ADR}/\text{ADR}_0)^{e}$ with $e < 0$, and the induced RevPAR. \emph{Result variables:} the minimum ADR that reaches the target, the occupancy at that point, and the tornado sensitivity of the answer to each parameter. The model inverts the demand curve with a root-finding solver---the \emph{goal seeking} mode of Turban et al.~\cite{turban2011}: instead of asking ``\emph{what happens if we set this rate?}'', the manager asks ``\emph{what rate do we need?}''. Its certainty class is \emph{uncertainty}, not risk, in a precise sense: the dataset contains no independent price variation, so the elasticity $e$ cannot be estimated from the data and must be set by the user as an explicit assumption. The model therefore reports its result together with a tornado chart showing how the answer moves as $e$ and the baselines vary, making the assumption's influence visible instead of hidden.
+\paragraph{M3 --- allocation by linear programming (static, certainty; optimisation via algorithm).}
+\emph{Business question:} several group requests compete for capacity across a week of multiple room types --- which to accept, and what is one more room-night worth? \emph{Input:} capacity per (night, room type) (from the warehouse estimate); the forecasted transient demand and rates per (night, type) (from M1 and the rate card); the set of group offers (rooms, nights, types, rates). \emph{Computation:} a linear program over decision variables $y_{d,t}$ (rooms sold to transients per night and type) and $z_g \in \{0,1\}$ (accept group $g$):
+\begin{equation}
+\max \sum_{d,t} r_{d,t}\, y_{d,t} + \sum_{g} R_g\, z_g
+\quad\text{s.t.}\quad
+y_{d,t} + \sum_{g \ni (d,t)} u_{g}\, z_g \le K_{d,t}, \quad
+0 \le y_{d,t} \le \hat{D}_{d,t},
+\end{equation}
+solved with PuLP. \emph{Output:} the optimal revenue, the accepted set of groups, and the dual value of each capacity constraint --- the \emph{bid price}: ``\emph{the sum of dual variables across the proposed stayover nights}'', with the operating rule that ``\emph{a reservation request is accepted only if total room revenue exceeds the bid price}''~\cite{pimentel2019}. Because it takes point forecasts as given, the randomness of demand is handled upstream by M1 and M2 --- hence its certainty classification. Table~\ref{tab:lpcomponents} maps the six LP components of the course onto this program.
 
-\paragraph{How the models work together.}
-The catalog is a pipeline as much as a menu: M1 produces the demand forecasts (with uncertainty) that parameterise M2's demand distribution and M3's right-hand sides; M2 gives the quick single-request answer, M3 the full multi-night allocation; M4 protects the chosen allocation against cancellations; and M5 closes the loop on the primary goal of Section~2 by translating a RevPAR target into a rate. The models share one warehouse, one parameter interface, and one run log---the model management machinery to which we now turn.
+\begin{table}[H]
+\centering
+\caption{The six LP components (course Ch.~7) mapped to M3.}
+\label{tab:lpcomponents}
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Component} & \textbf{In M3} \\
+\midrule
+Decision variables & $y_{d,t}$ (transient rooms per night/type); $z_g$ (accept group $g$) \\
+Objective function & $\max \sum r_{d,t} y_{d,t} + \sum R_g z_g$ (total revenue) \\
+Objective coefficients & transient rates $r_{d,t}$; group revenues $R_g$ \\
+Constraints & capacity per (night, type); demand upper bounds \\
+Capacities & $K_{d,t}$ rooms per night and type; $\hat{D}_{d,t}$ demand bounds \\
+Technology coefficients & $u_g$ = room-nights a group consumes on (night, type) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{M3 variable declaration.}
+\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Role} & \textbf{Variables} \\
+\midrule
+Decision & $y_{d,t}$; $z_g$ \\
+Uncontrollable & capacity $K_{d,t}$; forecasted demand $\hat{D}_{d,t}$; rates; the offer set \\
+Intermediate & shadow prices (bid prices) per (night, type) \\
+Result & optimal revenue $Z^{*}$; accepted groups; bid prices \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.55cm and 1.0cm]
+\node[iddec] (x) {$y_{d,t}$, $z_g$\\ (allocations, accepts)};
+\node[idparam, below=of x] (k) {capacity $K_{d,t}$,\\ demand $\hat{D}_{d,t}$};
+\node[idint, right=1.15cm of x] (sp) {shadow prices\\ (= bid prices)};
+\node[idval, right=1.1cm of sp] (res) {optimal revenue $Z^{*}$};
+\draw[idar] (x) -- (sp);
+\draw[idar] (k) -- (sp);
+\draw[idar] (x) to[bend left=18] (res);
+\draw[idar] (sp) -- (res);
+\end{tikzpicture}
+\caption{M3 influence diagram.}
+\label{fig:id-m3}
+\end{figure}
+
+\paragraph{M4 --- overbooking (static, risk; optimisation via analytic formula, verified by simulation).}
+\emph{Business question:} for a night with $C$ rooms, how many bookings $B$ should be accepted? \emph{Input:} capacity $C$; the show-up probability $p$, estimated at a cut-off $h$ days before arrival from bookings still on the books (the dataset records values as of the day prior to arrival~\cite{antonio2019}, and industry practice revises forecasts 7--30 days before arrival~\cite{jawabreh2026}); the room revenue $r$; the walk cost $c_w$, a management-set parameter --- the literature acknowledges this cost as ``\emph{subjective}''~\cite{pimentel2019}. \emph{Computation:} with $S \sim \mathrm{Binomial}(B, p)$ arrivals, the expected profit is $\pi(B) = r\,\mathrm{E}[\min(S,C)] - c_w\,\mathrm{E}[(S-C)^+]$; the optimal limit is the smallest $B$ satisfying the critical-ratio condition
+\begin{equation}
+P(S \geq C) \;\geq\; \frac{r}{r + c_w},
+\end{equation}
+found by an exact binomial scan and cross-checked by Monte Carlo simulation with reported confidence intervals. \emph{Output:} $B^{*}$, the overbooking level $B^{*}-C$, the probability of walking at least one guest, and the expected number of walked guests. The critical ratio is the newsvendor structure shared with the first airline overbooking models~\cite{rothstein1971,talluri2004}.
+
+\begin{table}[H]
+\centering
+\caption{M4 variable declaration.}
+\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Role} & \textbf{Variables} \\
+\midrule
+Decision & booking limit $B$ (equivalently: overbooking level $B-C$) \\
+Uncontrollable & show-up probability $p$; capacity $C$; revenue $r$; walk cost $c_w$ \\
+Intermediate & arrivals $S \sim \mathrm{Bin}(B,p)$; $\mathrm{E}[\min(S,C)]$; $\mathrm{E}[(S-C)^+]$ \\
+Result & $B^{*}$; expected profit; $P(\text{walk} \geq 1)$; $\mathrm{E}[\text{walks}]$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.55cm and 1.0cm]
+\node[iddec] (b) {booking\\ limit $B^{*}$};
+\node[idparam, below=of b] (p) {$p$ (at cut-off $h$),\\ $c_w$, $r$};
+\node[idint, right=1.15cm of b] (s) {$S\sim\mathrm{Bin}(B,p)$:\\ occupied, walks};
+\node[idval, right=1.1cm of s] (res) {expected profit\\ $\pi(B^{*})$};
+\draw[idar] (b) -- (s);
+\draw[idar] (p) -- (s);
+\draw[idar] (s) -- (res);
+\end{tikzpicture}
+\caption{M4 influence diagram.}
+\label{fig:id-m4}
+\end{figure}
+
+\paragraph{M5 --- pricing by goal seeking (static, uncertainty; what-if and sensitivity by formula).}
+\emph{Business question:} what nightly ADR is needed to reach a target RevPAR in a given season? \emph{Input:} the baseline occupancy and ADR of the season (from the warehouse: seasonal averages over realised stays); the price elasticity $e$; the target RevPAR. \emph{Computation:} the constant-elasticity demand response $\text{occ}(\text{ADR}) = \text{occ}_0 \cdot (\text{ADR}/\text{ADR}_0)^{e}$ induces $\text{RevPAR}(\text{ADR}) = \text{ADR} \cdot \text{occ}(\text{ADR})$; a root-finding solver (Brent's method) inverts this curve to find the minimum ADR that achieves the target. \emph{Output:} the required ADR, the occupancy at that point, and a tornado chart showing how the answer moves as each parameter varies. Its certainty class is \emph{uncertainty} in a precise sense: the dataset contains no independent price variation, so the elasticity cannot be estimated and must be set by the user as an explicit, visible assumption. The model therefore implements the goal-seeking mode directly --- ``\emph{calculates the values of the inputs necessary to achieve a desired level of an output (goal)}''~\cite{turban2011} --- and the tornado implements sensitivity analysis, which ``\emph{attempts to assess the impact of a change in the input data or parameters on the proposed solution}''.
+
+\begin{table}[H]
+\centering
+\caption{M5 variable declaration.}
+\begin{tabularx}{0.86\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Role} & \textbf{Variables} \\
+\midrule
+Decision & nightly ADR \\
+Uncontrollable & baseline $\text{occ}_0$, $\text{ADR}_0$; elasticity $e$; target RevPAR \\
+Intermediate & demand response $\text{occ}(\text{ADR})$; induced $\text{RevPAR}(\text{ADR})$ \\
+Result & minimum ADR for the target; occupancy there; tornado sensitivities \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.55cm and 1.0cm]
+\node[iddec] (a) {nightly ADR};
+\node[idparam, below=of a] (e) {elasticity $e$;\\ baseline $\text{occ}_0$, $\text{ADR}_0$};
+\node[idint, right=1.15cm of a] (o) {demand response\\ $\text{occ}(\text{ADR})$};
+\node[idval, right=1.1cm of o] (res) {RevPAR achieved\\ (vs.\ target)};
+\draw[idar] (a) -- (o);
+\draw[idar] (e) -- (o);
+\draw[idar] (o) -- (res);
+\end{tikzpicture}
+\caption{M5 influence diagram.}
+\label{fig:id-m5}
+\end{figure}
+
+\subsubsection{Model chaining and the analysis modes}
+
+\paragraph{Chaining.}
+The models compose exactly as the theory describes model integration --- ``\emph{directing the output of one model, say forecasting, to be processed by another one, say a linear programming planning model}''~\cite{turban2011}: M1's forecasts parameterise M2's demand distribution and M3's right-hand sides ($\hat{D}_{d,t}$); M2 answers the single-request question, M3 the multi-request week; M4 protects the chosen allocation against cancellations; and M5 closes the loop on the primary goal by translating a RevPAR target into a rate. This is also why a DSS needs several models rather than one --- ``\emph{a decision support system can include several models (sometimes dozens), each of which represents a different part of the decision-making problem}''~\cite{turban2011}.
+
+\paragraph{The three analysis modes.}
+The interactive layer exposes all three analysis modes the theory defines~\cite{turban2011}: \emph{what-if analysis} (``\emph{what will happen to the solution if an input variable, an assumption, or a parameter value is changed?}'') --- every model parameter is overridable at run time, and the resulting KPIs recompute immediately; \emph{sensitivity analysis} --- M5's tornado chart varies each parameter and ranks their impact; and \emph{goal seeking} --- M5 itself. M4's Monte Carlo verification adds \emph{probabilistic simulation} --- ``\emph{a technique for conducting experiments (e.g., what-if analyses) with a computer on a model}''~\cite{turban2011} --- which is descriptive rather than normative: it does not choose $B^{*}$, it validates the choice.
+
+\paragraph{What we deliberately do not use.}
+Search methods (blind or heuristic) are unnecessary because every model has an analytical solution or a standard solver; multicriteria methods such as AHP are not needed because the goals reduce to one primary metric (RevPAR) plus a constraint; and no model attempts to automate judgment --- the semistructured portion of the decisions stays with the manager, as Section~2.3 argued.

@@ -7,3 +7,13 @@
     dasharrow/.style={-{Stealth[length=3mm]}, thick, dashed},
     label/.style={font=\small\itshape, text=gray},
 }
+
+% Influence-diagram styles (Ch. 7: decision=rectangle, chance=ellipse, value=diamond; dashed=external parameter)
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+\tikzset{
+    iddec/.style={rectangle, draw=teal!70!black, thick, fill=teal!10, align=center, inner sep=3pt, font=\scriptsize, minimum height=0.7cm},
+    idint/.style={ellipse, draw=orange!80!black, thick, fill=orange!10, align=center, inner sep=2pt, font=\scriptsize, minimum height=0.7cm},
+    idparam/.style={ellipse, draw=orange!80!black, thick, dashed, fill=orange!5, align=center, inner sep=2pt, font=\scriptsize, minimum height=0.7cm},
+    idval/.style={diamond, aspect=1.7, draw=blue!70!black, thick, fill=blue!10, align=center, inner sep=1pt, font=\scriptsize, minimum height=0.7cm},
+    idar/.style={-{Stealth[length=2mm]}, thick}
+}
